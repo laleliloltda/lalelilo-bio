@@ -15,7 +15,8 @@ celular deitado, no tablet e no computador.
   lojas que temos, sem chamar serviço externo); Enter/Buscar procura o endereço no OpenStreetMap (primeiro em PE, PB e
   AL). Com um ponto de partida (busca ou "Usar minha localização"), o mapa mostra "Você" e a lista traz as lojas mais
   perto (até 20 km, 5 por vez, com "Mostrar menos"). Tocando numa loja: endereço, **Como chegar** (Google Maps),
-  **WhatsApp** e **Grupo VIP**. Nada do que a pessoa busca é guardado.
+  **WhatsApp** e **Grupo VIP**. **Limpar busca** (ou o x do campo) volta ao mapa inicial. Nada do que a pessoa busca é
+  guardado. Aviso do mapa conforme o jeito de mexer: dedo na tela → dois dedos e pinça; mouse → Ctrl + rolagem.
 - "Sua loja": a última loja usada fica guardada só no aparelho da pessoa.
 - Canal do YouTube, Instagram/TikTok, vagas (formulários) e LinkedIn.
 

@@ -150,33 +150,37 @@ export default function MapaLojas({ origem, lojas, selecionada, aoSelecionar, lo
     }
     m.on('zoomend', () => desenharVisao.current())
 
-    // dicas de uso (como no Google Maps): um dedo rola a página; Ctrl + rolagem aproxima
+    // dicas de uso (como no Google Maps), conforme o jeito de mexer — não pelo tipo de aparelho:
+    // dedo na tela → dois dedos e pinça; rolagem do mouse → Ctrl + rolagem
     let espera = 0
     const mostrarDica = (texto: string) => {
       setDica(texto)
       window.clearTimeout(espera)
       espera = window.setTimeout(() => setDica(null), 1300)
     }
-    const mover = (e: TouchEvent) => e.touches.length === 1 && mostrarDica('Use dois dedos para mover o mapa')
+    const mover = (e: TouchEvent) =>
+      e.touches.length === 1 &&
+      mostrarDica('Use dois dedos para mover o mapa e faça o movimento de pinça para aproximar')
     const comecar = (e: TouchEvent) => {
       if (e.touches.length > 1) {
         setDica(null)
         m.dragging.enable()
-      }
+      } else m.dragging.disable() // um dedo na tela rola a página, mesmo em aparelho com mouse e tela de toque
     }
     const terminar = (e: TouchEvent) => {
-      if (!e.touches.length) m.dragging.disable()
+      if (e.touches.length) return
+      if (toque) m.dragging.disable()
+      else m.dragging.enable() // volta a arrastar com o mouse
     }
     const rolar = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return mostrarDica('Use Ctrl + rolagem para aproximar o mapa')
       e.preventDefault()
       m.setZoomAround(m.mouseEventToContainerPoint(e), m.getZoom() + (e.deltaY < 0 ? 1 : -1))
     }
-    if (toque) {
-      el.addEventListener('touchmove', mover, { passive: true })
-      el.addEventListener('touchstart', comecar, { passive: true })
-      el.addEventListener('touchend', terminar, { passive: true })
-    } else el.addEventListener('wheel', rolar, { passive: false })
+    el.addEventListener('touchmove', mover, { passive: true })
+    el.addEventListener('touchstart', comecar, { passive: true })
+    el.addEventListener('touchend', terminar, { passive: true })
+    el.addEventListener('wheel', rolar, { passive: false })
 
     const marcasAtuais = marcas.current
     return () => {

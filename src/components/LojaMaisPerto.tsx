@@ -424,11 +424,12 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
             <button
               type="button"
               onClick={() => {
-                setTexto('')
+                if (origem || aberta != null) verTodas()
+                else setTexto('')
                 setListaSugestoes(false)
                 campo.current?.focus()
               }}
-              aria-label="Apagar a busca"
+              aria-label="Limpar a busca"
               className="grid size-9 shrink-0 place-items-center rounded-full text-muted-2 hover:bg-soft"
             >
               <X aria-hidden="true" className="size-[17px]" strokeWidth={2.5} />
@@ -546,24 +547,34 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
 
       {origem && (
         <div className="mx-0.5 mt-3.5">
-          <span className="block text-[11.5px] font-extrabold tracking-[.06em] text-muted-2 uppercase">
-            Lojas mais perto de
-          </span>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <b ref={titulo} tabIndex={-1} className="font-display text-[19px] leading-tight font-semibold outline-none">
-              {origem.rotulo}
-            </b>
-            {origem.detalhe && (
-              <span className="max-w-full truncate rounded-full bg-white/80 px-2 py-0.5 text-xs font-bold text-muted-2 ring-1 ring-[#EFDCCF]">
-                {origem.detalhe}
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <span className="block text-[11.5px] font-extrabold tracking-[.06em] text-muted-2 uppercase">
+                Lojas mais perto de
               </span>
-            )}
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <b
+                  ref={titulo}
+                  tabIndex={-1}
+                  className="font-display text-[19px] leading-tight font-semibold outline-none"
+                >
+                  {origem.rotulo}
+                </b>
+                {origem.detalhe && (
+                  <span className="max-w-full truncate rounded-full bg-white/80 px-2 py-0.5 text-xs font-bold text-muted-2 ring-1 ring-[#EFDCCF]">
+                    {origem.detalhe}
+                  </span>
+                )}
+              </div>
+            </div>
+            {/* desfaz a busca e volta ao mapa inicial, com todas as lojas */}
             <button
               type="button"
               onClick={verTodas}
-              className="py-1 text-[12.5px] font-extrabold text-pink-dd underline underline-offset-[3px]"
+              className="mt-1 inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-[#F3C8D9] bg-white px-3 text-[13px] font-extrabold text-pink-dd shadow-[0_6px_14px_-10px_rgba(168,51,106,.7)] transition hover:bg-[#FFF5F9] active:scale-[.97]"
             >
-              Ver todas no mapa
+              <X aria-hidden="true" className="size-3.5" strokeWidth={3} />
+              Limpar busca
             </button>
           </div>
           {foraDoRaio && (
