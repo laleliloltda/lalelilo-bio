@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
 import { LOJAS } from '@/data/lojas'
-import { REGIOES, regiaoDe } from '@/data/regioes'
 
 import { centroDe, ehCep, geocodificar, LugarNaoEncontrado, pareceCep, sugestoes } from './busca'
 import { CepNaoEncontrado, localizarCep } from './cep'
@@ -129,15 +128,7 @@ describe('localizarCep', () => {
   })
 })
 
-describe('regiões da lista completa', () => {
-  it('toda loja cai numa região (cidade nova? acrescente em src/data/regioes.ts)', () => {
-    const semRegiao = LOJAS.filter((l) => !regiaoDe(l)).map((l) => `${l.nome} (${cidadeDe(l)})`)
-    expect(semRegiao).toEqual([])
-  })
-  it('quantas lojas em cada região', () => {
-    const contagem = Object.fromEntries(REGIOES.map((r) => [r.id, LOJAS.filter((l) => regiaoDe(l) === r.id).length]))
-    expect(contagem).toEqual({ rmr: 20, mata: 4, agreste: 6, sertao: 3, pb: 2, al: 3 })
-  })
+describe('endereço das lojas', () => {
   it('cidade sai do endereço', () => {
     const ipojuca = LOJAS.find((l) => l.nome === 'Ipojuca')!
     const partage = LOJAS.find((l) => l.nome.startsWith('Shopping Partage'))!

@@ -19,7 +19,6 @@ import {
 } from 'react'
 
 import { ESTADOS, LOJAS, type Loja } from '@/data/lojas'
-import { REGIOES, regiaoDe } from '@/data/regioes'
 import { menosMovimento } from '@/lib/aparelho'
 import { centroDe, ehCep, geocodificar, LugarNaoEncontrado, pareceCep, sugestoes, type Sugestao } from '@/lib/busca'
 import { CepNaoEncontrado, localizarCep } from '@/lib/cep'
@@ -38,8 +37,6 @@ const PASSO = 5 // lojas por vez na lista
 const RAIO_KM = 20 // a lista "mais perto" só mostra lojas até essa distância
 const LONGE_KM = 120 // acima disso, "ainda não temos loja na sua região"
 const ALTURA_MAPA = 'h-[clamp(250px,min(76vw,58vh),360px)]'
-const NOME_CURTO: Record<string, string> = { rmr: 'Recife e RMR' }
-const POR_REGIAO = REGIOES.map((r) => ({ ...r, n: LOJAS.filter((l) => regiaoDe(l) === r.id).length }))
 
 interface Origem extends Ponto {
   rotulo: string
@@ -637,26 +634,9 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
             </div>
           </div>
         ) : (
-          <div className="mt-3">
-            <p className="mx-1 mb-2 text-[12.5px] font-semibold text-muted-2">
-              Toque numa loja no mapa (os números juntam lojas próximas) ou escolha a região:
-            </p>
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Ver uma região no mapa">
-              {POR_REGIAO.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => proximoFoco({ tipo: 'regiao', id: r.id })}
-                  className="flex h-9 items-center gap-1.5 rounded-full border-[1.5px] border-line bg-white pr-1.5 pl-3 text-[13px] font-bold text-muted-2 transition hover:border-[#E3D3C8] hover:text-ink"
-                >
-                  {NOME_CURTO[r.id] ?? r.nome}
-                  <span className="grid h-6 min-w-6 place-items-center rounded-full bg-soft px-1.5 text-[11.5px] font-extrabold text-ink">
-                    {r.n}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <p className="mx-1 mt-3 text-[12.5px] leading-snug font-semibold text-muted-2">
+            Toque numa loja no mapa para ver os contatos. Os números juntam lojas próximas: toque neles para aproximar.
+          </p>
         ))}
 
       {origem && (

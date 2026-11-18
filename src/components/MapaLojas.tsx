@@ -10,7 +10,6 @@ import L from 'leaflet'
 import { useEffect, useRef, useState } from 'react'
 
 import { LOJAS, type Loja } from '@/data/lojas'
-import { regiaoDe } from '@/data/regioes'
 import { menosMovimento, telaDeToque } from '@/lib/aparelho'
 import type { Ponto } from '@/lib/distancia'
 import { bairroCidade } from '@/lib/loja'
@@ -259,14 +258,12 @@ export default function MapaLojas({ origem, lojas, selecionada, aoSelecionar, lo
     m.fitBounds(pontos, { ...FOLGA, maxZoom: 15, animate: !menosMovimento() })
   }, [origem, lojas, longe])
 
-  // visão geral: para onde olhar (todas as lojas, uma região ou uma loja)
+  // visão geral: para onde olhar (todas as lojas ou uma loja)
   useEffect(() => {
     const m = mapa.current
     if (!m || origem) return
     const animate = !menosMovimento()
     if (foco.tipo === 'tudo') m.fitBounds(TODAS, { ...FOLGA, animate })
-    else if (foco.tipo === 'regiao')
-      m.fitBounds(limites(LOJAS.filter((l) => regiaoDe(l) === foco.id)), { ...FOLGA, maxZoom: 14, animate })
     else {
       const l = LOJAS.find((x) => x.id === foco.id)
       if (l) m.setView([l.lat, l.lng], Math.max(m.getZoom(), 15), { animate })

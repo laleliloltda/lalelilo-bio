@@ -10,7 +10,7 @@ celular deitado, no tablet e no computador.
 
 - Topo com o logo, redes sociais e o número de lojas.
 - **Localizador de lojas** (`src/components/LojaMaisPerto.tsx` + `MapaLojas.tsx`): o mapa aparece já com todas as lojas
-  (as que ficam coladas na tela viram uma bolinha com o número; tocar aproxima) e atalhos por região embaixo. Uma busca
+  (as que ficam coladas na tela viram uma bolinha com o número; tocar aproxima). Uma busca
   só aceita **CEP, endereço, bairro, cidade ou nome da loja**: enquanto digita, aparecem sugestões (cidades, bairros e
   lojas que temos, sem chamar serviço externo); Enter/Buscar procura o endereço no OpenStreetMap (primeiro em PE, PB e
   AL). Com um ponto de partida (busca ou "Usar minha localização"), o mapa mostra "Você" e a lista traz as lojas mais
@@ -25,7 +25,6 @@ celular deitado, no tablet e no computador.
 | O quê | Arquivo |
 | --- | --- |
 | Lojas (WhatsApp, Grupo VIP, localização, endereço) | `src/data/lojas.ts` — instruções no topo do arquivo |
-| Regiões (atalhos do mapa; cidade → região) | `src/data/regioes.ts` — o teste avisa se uma loja nova cair fora |
 | Vagas | `src/data/vagas.ts` |
 | Cores e fontes da marca | `src/styles/index.css` (bloco `@theme`) |
 | Busca do CEP | `src/lib/cep.ts` |
