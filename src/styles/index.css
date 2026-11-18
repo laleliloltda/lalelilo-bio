@@ -64,6 +64,13 @@
 }
 
 @layer components {
+  /* recorta nos cantos arredondados sem virar área de rolagem (com overflow:hidden, scrollIntoView rolava o
+     conteúdo por dentro do cartão e deixava um vão vazio no fim) */
+  .recorte {
+    overflow: hidden;
+    overflow: clip;
+  }
+
   /* fundo animado: gradiente laranja → rosa com luzes suaves (só transform/opacity: leve até em celular simples) */
   .bg {
     position: fixed;

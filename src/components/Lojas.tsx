@@ -57,7 +57,7 @@ export function Lojas() {
 
   return (
     <section
-      className="reveal faixa-marca relative mt-[26px] overflow-hidden rounded-card bg-card px-[18px] pt-[22px] pb-[18px] shadow-card max-[360px]:px-3.5 [animation-delay:.05s]"
+      className="reveal faixa-marca recorte relative mt-[26px] rounded-card bg-card px-[18px] pt-[22px] pb-[18px] shadow-card max-[360px]:px-3.5 [animation-delay:.05s]"
       aria-labelledby="t-lojas"
     >
       <span className="inline-flex items-center gap-1.5 text-xs font-extrabold tracking-[.06em] text-pink-d uppercase">

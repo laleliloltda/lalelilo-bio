@@ -132,6 +132,13 @@ export default function MapaLojas({ origem, lojas, selecionada, aoSelecionar, lo
       c.clearLayers()
       marcas.current.clear()
     }
+    // "mostrar menos": tira os pinos das lojas que saíram da lista
+    const naLista = new Set(lojas.map((x) => x.loja.id))
+    marcas.current.forEach((mk, id) => {
+      if (naLista.has(id)) return
+      c.removeLayer(mk)
+      marcas.current.delete(id)
+    })
     let novos = 0
     lojas.forEach((ml) => {
       if (marcas.current.has(ml.loja.id)) return
@@ -145,13 +152,13 @@ export default function MapaLojas({ origem, lojas, selecionada, aoSelecionar, lo
       marcas.current.set(ml.loja.id, mk)
     })
 
-    // ao trocar de lugar: a mais perto e as que também ficam perto (até 3); com "ver mais": todas as mostradas
+    // ao trocar de lugar ou recolher: a mais perto e as que também ficam perto (até 3); com "ver mais": todas
     const raio = Math.max(8, (lojas[0]?.distancia ?? 0) * 2.5)
     const alvo = longe
       ? lojas.slice(0, 1)
-      : novoLugar
-        ? lojas.slice(0, 3).filter((x, i) => i === 0 || x.distancia <= raio)
-        : lojas
+      : novos > 0 && !novoLugar
+        ? lojas
+        : lojas.slice(0, 3).filter((x, i) => i === 0 || x.distancia <= raio)
     const pontos = L.latLngBounds([
       [origem.lat, origem.lng],
       ...alvo.map((x) => [x.loja.lat, x.loja.lng] as [number, number]),
