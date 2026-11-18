@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { LOJAS } from '@/data/lojas'
 import { REGIOES, regiaoDe } from '@/data/regioes'
 
+import { centroDe, ehCep, geocodificar, LugarNaoEncontrado, pareceCep, sugestoes } from './busca'
 import { CepNaoEncontrado, localizarCep } from './cep'
 import { distanciaFalada, formatarDistancia, km, ordenarPorDistancia } from './distancia'
 import { bairroCidade, cidadeDe, rotaGoogleMaps } from './loja'
@@ -142,5 +143,56 @@ describe('regiões da lista completa', () => {
     const partage = LOJAS.find((l) => l.nome.startsWith('Shopping Partage'))!
     expect(cidadeDe(ipojuca)).toBe('Ipojuca')
     expect(cidadeDe(partage)).toBe('Campina Grande')
+  })
+})
+
+describe('busca do localizador', () => {
+  it('reconhece CEP', () => {
+    expect(ehCep('51110-160')).toBe(true)
+    expect(ehCep('51110160')).toBe(true)
+    expect(ehCep('51.110-160')).toBe(true)
+    expect(ehCep('5111016')).toBe(false)
+    expect(ehCep('boa viagem')).toBe(false)
+    expect(pareceCep('5111')).toBe(true)
+    expect(pareceCep('boa')).toBe(false)
+  })
+
+  it('sugere cidade, bairro e loja pelo começo do nome', () => {
+    const caru = sugestoes('caru')
+    expect(caru[0]).toMatchObject({ tipo: 'lugar', titulo: 'Caruaru' })
+    expect(caru.map((s) => s.titulo)).toEqual(expect.arrayContaining(['Centro de Caruaru', 'Shopping Caruaru']))
+    expect(caru.at(-1)).toMatchObject({ tipo: 'buscar', texto: 'caru' })
+    const boaVista = sugestoes('boa vi').map((s) => `${s.tipo}:${s.titulo}`)
+    expect(boaVista).toEqual(expect.arrayContaining(['lugar:Boa Vista', 'loja:Shopping Boa Vista']))
+    expect(sugestoes('rio').map((s) => s.titulo)).toContain('Shopping RioMar Recife')
+    expect(sugestoes('51110')).toEqual([])
+  })
+
+  it('ponto médio das lojas de uma cidade', () => {
+    const c = centroDe(LOJAS.filter((l) => cidadeDe(l) === 'Caruaru'))
+    expect(c.lat).toBeCloseTo(-8.2927, 2)
+    expect(c.lng).toBeCloseTo(-35.963, 2)
+  })
+
+  it('endereço: tenta na região das lojas e depois no Brasil todo', async () => {
+    const chamadas: string[] = []
+    const buscar = (async (url: string) => {
+      chamadas.push(url)
+      return resposta(
+        200,
+        chamadas.length === 1
+          ? []
+          : [{ lat: '-8.1283', lon: '-34.9033', address: { suburb: 'Boa Viagem', city: 'Recife' } }],
+      )
+    }) as unknown as typeof fetch
+    const lugar = await geocodificar('boa viagem', buscar)
+    expect(lugar).toMatchObject({ lat: -8.1283, lng: -34.9033, rotulo: 'Boa Viagem, Recife' })
+    expect(chamadas[0]).toContain('bounded=1')
+    expect(chamadas[1]).not.toContain('bounded=1')
+  })
+
+  it('endereço que não existe: avisa', async () => {
+    const buscar = (async () => resposta(200, [])) as unknown as typeof fetch
+    await expect(geocodificar('lugar que não existe', buscar)).rejects.toBeInstanceOf(LugarNaoEncontrado)
   })
 })

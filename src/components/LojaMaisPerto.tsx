@@ -1,7 +1,9 @@
-/** "Qual loja fica mais perto de você?": a pessoa digita o CEP (ou usa a localização do aparelho) e vê no mapa
- *  e numa lista as lojas mais próximas; ao tocar numa loja, aparecem o endereço, "Como chegar", WhatsApp e Grupo VIP. */
+/** Localizador de lojas: o mapa com todas as lojas e uma busca só — CEP, endereço, bairro, cidade ou nome da loja.
+ *  Enquanto a pessoa digita, aparecem sugestões (cidades, bairros e lojas). Com um ponto de partida (busca ou
+ *  localização do aparelho), o mapa mostra "Você" e a lista traz as lojas mais perto (até 20 km). Tocando numa loja
+ *  (no mapa ou na lista), aparecem o endereço, "Como chegar", WhatsApp e Grupo VIP. */
 import clsx from 'clsx'
-import { ArrowRight, ChevronDown, ChevronUp, Info, LocateFixed, MapPin, X } from 'lucide-react'
+import { ArrowRight, ChevronDown, ChevronUp, Info, LocateFixed, MapPin, Search, Store, X } from 'lucide-react'
 import {
   Component,
   lazy,
@@ -12,16 +14,22 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type KeyboardEvent,
   type ReactNode,
 } from 'react'
 
-import { LOJAS, type Loja } from '@/data/lojas'
+import { ESTADOS, LOJAS, type Loja } from '@/data/lojas'
+import { REGIOES, regiaoDe } from '@/data/regioes'
 import { menosMovimento } from '@/lib/aparelho'
+import { centroDe, ehCep, geocodificar, LugarNaoEncontrado, pareceCep, sugestoes, type Sugestao } from '@/lib/busca'
 import { CepNaoEncontrado, localizarCep } from '@/lib/cep'
-import { distanciaFalada, formatarDistancia, ordenarPorDistancia, type Ponto } from '@/lib/distancia'
-import { formatarCep, mascaraCep, soDigitos } from '@/lib/texto'
+import { distanciaFalada, formatarDistancia, km, ordenarPorDistancia, type Ponto } from '@/lib/distancia'
+import { bairroCidade } from '@/lib/loja'
+import type { Alvo, Foco } from '@/lib/mapa'
+import { formatarCep, mascaraCep, norm, soDigitos } from '@/lib/texto'
 
-import { LojaItem } from './LojaItem'
+import { Acao } from './Acao'
+import { Endereco, LojaItem } from './LojaItem'
 
 const carregarMapa = () => import('./MapaLojas')
 const MapaLojas = lazy(carregarMapa)
@@ -29,16 +37,19 @@ const MapaLojas = lazy(carregarMapa)
 const PASSO = 5 // lojas por vez na lista
 const RAIO_KM = 20 // a lista "mais perto" só mostra lojas até essa distância
 const LONGE_KM = 120 // acima disso, "ainda não temos loja na sua região"
-const ALTURA_MAPA = 'h-[clamp(220px,min(64vw,52vh),310px)]'
+const ALTURA_MAPA = 'h-[clamp(250px,min(76vw,58vh),360px)]'
+const NOME_CURTO: Record<string, string> = { rmr: 'Recife e RMR' }
+const POR_REGIAO = REGIOES.map((r) => ({ ...r, n: LOJAS.filter((l) => regiaoDe(l) === r.id).length }))
 
 interface Origem extends Ponto {
   rotulo: string
-  cep: string | null
+  /** "CEP 51110-160", "“boa viagem”", "localização do aparelho" */
+  detalhe: string | null
 }
 
-type Estado = { tipo: 'ocioso' } | { tipo: 'buscando'; via: 'cep' | 'geo' } | { tipo: 'erro'; texto: string }
+type Estado = { tipo: 'ocioso' } | { tipo: 'buscando'; via: 'texto' | 'geo' } | { tipo: 'erro'; texto: string }
 
-/** Se o mapa não carregar (sem internet, bloqueio), a lista continua funcionando. */
+/** Se o mapa não carregar (sem internet, bloqueio), a busca e a lista continuam funcionando. */
 class SeOMapaFalhar extends Component<{ children: ReactNode }, { falhou: boolean }> {
   state = { falhou: false }
   static getDerivedStateFromError() {
@@ -50,33 +61,38 @@ class SeOMapaFalhar extends Component<{ children: ReactNode }, { falhou: boolean
       <div
         className={clsx(ALTURA_MAPA, 'grid place-items-center p-6 text-center text-[13.5px] font-bold text-muted-2')}
       >
-        Não foi possível carregar o mapa agora. As lojas mais perto estão na lista abaixo.
+        Não foi possível carregar o mapa agora. A busca continua funcionando.
       </div>
     )
   }
 }
 
 export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
-  const [cep, setCep] = useState('')
+  const [texto, setTexto] = useState('')
   const [estado, setEstado] = useState<Estado>({ tipo: 'ocioso' })
   const [origem, setOrigem] = useState<Origem | null>(null)
   const [mostrar, setMostrar] = useState(PASSO)
-  const [aberta, setAberta] = useState<number | null>(null)
+  const [aberta, setAberta] = useState<number | null>(null) // lista: loja aberta; visão geral: loja escolhida
+  const [foco, setFoco] = useState<Foco>({ tipo: 'tudo', vez: 0 })
   const [anuncio, setAnuncio] = useState('')
+  const [listaSugestoes, setListaSugestoes] = useState(false)
+  const [ativa, setAtiva] = useState(-1)
 
   const pedido = useRef(0) // descarta respostas de buscas antigas
-  const ultimoCep = useRef('')
-  const campoCep = useRef<HTMLInputElement>(null)
+  const ultimaBusca = useRef('')
+  const campo = useRef<HTMLInputElement>(null)
   const titulo = useRef<HTMLElement>(null)
   const cartao = useRef<HTMLDivElement>(null)
   const formulario = useRef<HTMLFormElement>(null)
   const caixaMapa = useRef<HTMLDivElement>(null)
+  const cartaoLoja = useRef<HTMLDivElement>(null)
   const cabecas = useRef(new Map<number, HTMLButtonElement>())
+  const botaoMais = useRef<HTMLButtonElement>(null)
   const focarResultado = useRef(false)
   const focarItem = useRef<number | null>(null)
   const focarAposMenos = useRef(false)
-  const botaoMais = useRef<HTMLButtonElement>(null)
 
+  const sug = useMemo(() => sugestoes(texto), [texto])
   const ordem = useMemo(() => (origem ? ordenarPorDistancia(origem, LOJAS) : []), [origem])
   // só as lojas num raio de 20 km (para a página não crescer demais); se não houver nenhuma, as 3 mais próximas
   const candidatas = useMemo(() => {
@@ -84,29 +100,32 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
     return noRaio.length ? noRaio : ordem.slice(0, 3)
   }, [ordem])
   const foraDoRaio = ordem.length > 0 && ordem[0].distancia > RAIO_KM
+  const longe = ordem.length > 0 && ordem[0].distancia > LONGE_KM
   const visiveis = useMemo(() => candidatas.slice(0, mostrar), [candidatas, mostrar])
   const marcadores = useMemo(
     () => visiveis.map(({ item, distancia }, i) => ({ loja: item, numero: i + 1, distancia })),
     [visiveis],
   )
-  const longe = ordem.length > 0 && ordem[0].distancia > LONGE_KM
-  const temGeo = typeof navigator !== 'undefined' && 'geolocation' in navigator
+  const lojaEscolhida = !origem && aberta != null ? (LOJAS.find((l) => l.id === aberta) ?? null) : null
   const buscando = estado.tipo === 'buscando'
+  const temGeo = typeof navigator !== 'undefined' && 'geolocation' in navigator
+  const mostrarSugestoes = listaSugestoes && sug.length > 0 && !buscando
+  const proximoFoco = (alvo: Alvo) => setFoco((atual) => ({ ...alvo, vez: atual.vez + 1 }))
 
-  function mostrarResultado(p: Ponto, rotulo: string, cepBuscado: string | null) {
+  function mostrarResultado(p: Ponto, rotulo: string, detalhe: string | null) {
     const maisPerto = ordenarPorDistancia(p, LOJAS)[0]
-    setOrigem({ lat: p.lat, lng: p.lng, rotulo, cep: cepBuscado })
+    setOrigem({ lat: p.lat, lng: p.lng, rotulo, detalhe })
     setMostrar(PASSO)
     setAberta(null)
     setEstado({ tipo: 'ocioso' })
+    setListaSugestoes(false)
     setAnuncio(
       `Encontramos as lojas mais perto de ${rotulo}. A mais perto é ${maisPerto.item.nome}, a ${distanciaFalada(maisPerto.distancia)}.`,
     )
     focarResultado.current = true
   }
 
-  // resultado novo: o cartão continua o mesmo (nada some) e a tela se ajeita para mostrar o campo do CEP e o mapa
-  // inteiro — o cartão todo, se couber; senão, o campo do CEP no alto. Só rola se precisar.
+  // resultado novo: o cartão continua o mesmo e a tela se ajeita para mostrar a busca e o mapa inteiro
   useEffect(() => {
     if (!origem || !focarResultado.current) return
     focarResultado.current = false
@@ -123,14 +142,11 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
     alvo.scrollIntoView({ behavior: menosMovimento() ? 'auto' : 'smooth', block: 'start' })
   }, [origem])
 
-  // "Trocar CEP": volta ao campo, com o CEP selecionado para digitar outro
-  function editarCep() {
-    const el = campoCep.current
-    if (!el) return
-    el.scrollIntoView({ behavior: menosMovimento() ? 'auto' : 'smooth', block: 'center' })
-    el.focus({ preventScroll: true })
-    el.select()
-  }
+  // visão geral: loja escolhida no mapa → o cartão dela aparece logo abaixo (e a tela acompanha)
+  useEffect(() => {
+    if (origem || aberta == null) return
+    cartaoLoja.current?.scrollIntoView({ behavior: menosMovimento() ? 'auto' : 'smooth', block: 'nearest' })
+  }, [aberta, origem])
 
   // "ver mais": o foco vai para a primeira loja nova
   useEffect(() => {
@@ -149,6 +165,181 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
     b?.scrollIntoView({ behavior: menosMovimento() ? 'auto' : 'smooth', block: 'center' })
   }, [visiveis])
 
+  async function buscarCep(digitos: string) {
+    const n = ++pedido.current
+    ultimaBusca.current = digitos
+    setEstado({ tipo: 'buscando', via: 'texto' })
+    try {
+      const lugar = await localizarCep(digitos)
+      if (n !== pedido.current) return
+      const rotulo = [lugar.bairro, lugar.cidade].filter(Boolean).join(', ') || `o CEP ${formatarCep(digitos)}`
+      mostrarResultado(lugar, rotulo, `CEP ${formatarCep(digitos)}`)
+    } catch (e) {
+      if (n !== pedido.current) return
+      ultimaBusca.current = ''
+      setEstado({
+        tipo: 'erro',
+        texto:
+          e instanceof CepNaoEncontrado
+            ? `Não encontramos o CEP ${formatarCep(digitos)}. Confira os números ou busque pelo bairro e a cidade.`
+            : 'Não conseguimos buscar agora. Tente de novo em instantes ou use a sua localização.',
+      })
+    }
+  }
+
+  async function buscarEndereco(busca: string) {
+    const n = ++pedido.current
+    setEstado({ tipo: 'buscando', via: 'texto' })
+    setListaSugestoes(false)
+    try {
+      const lugar = await geocodificar(busca)
+      if (n !== pedido.current) return
+      mostrarResultado(lugar, lugar.rotulo, `“${busca}”`)
+    } catch (e) {
+      if (n !== pedido.current) return
+      setEstado({
+        tipo: 'erro',
+        texto:
+          e instanceof LugarNaoEncontrado
+            ? `Não encontramos “${busca}”. Tente o CEP, ou o bairro junto com a cidade (ex.: Boa Viagem, Recife).`
+            : 'Não conseguimos buscar agora. Tente de novo em instantes ou use a sua localização.',
+      })
+    }
+  }
+
+  function verLoja(l: Loja) {
+    pedido.current++
+    setOrigem(null)
+    setEstado({ tipo: 'ocioso' })
+    setAberta(l.id)
+    proximoFoco({ tipo: 'loja', id: l.id })
+    setAnuncio(`${l.nome}, ${bairroCidade(l)}. Os contatos da loja estão logo abaixo do mapa.`)
+  }
+
+  /** Cidade ou bairro onde temos loja: parte do centro do lugar (OpenStreetMap); se não achar, do meio das lojas. */
+  async function irParaLugar(s: Extract<Sugestao, { tipo: 'lugar' }>) {
+    const n = ++pedido.current
+    setEstado({ tipo: 'buscando', via: 'texto' })
+    setListaSugestoes(false)
+    let ponto: Ponto = centroDe(s.lojas)
+    try {
+      const achado = await geocodificar(`${s.rotulo}, ${ESTADOS[s.lojas[0].uf]}`)
+      if (km(achado, ponto) < 30) ponto = achado // só aceita se cair perto das lojas (evita lugar com o mesmo nome)
+    } catch {
+      /* fica com o meio das lojas */
+    }
+    if (n !== pedido.current) return
+    mostrarResultado(ponto, s.rotulo, null)
+  }
+
+  function escolher(s: Sugestao) {
+    setListaSugestoes(false)
+    setAtiva(-1)
+    if (s.tipo === 'loja') {
+      setTexto(s.loja.nome)
+      verLoja(s.loja)
+    } else if (s.tipo === 'lugar') {
+      setTexto(s.rotulo)
+      void irParaLugar(s)
+    } else void buscarEndereco(s.texto)
+  }
+
+  function aoDigitar(valor: string) {
+    if (estado.tipo === 'erro') setEstado({ tipo: 'ocioso' })
+    if (estado.tipo === 'buscando' && estado.via === 'texto') {
+      pedido.current++ // começou a digitar outra coisa: a busca anterior não vale mais
+      setEstado({ tipo: 'ocioso' })
+    }
+    setAtiva(-1)
+    if (pareceCep(valor)) {
+      const mascara = mascaraCep(valor)
+      setTexto(mascara)
+      setListaSugestoes(false)
+      const d = soDigitos(mascara)
+      if (d.length === 8 && d !== ultimaBusca.current) void buscarCep(d) // completou o CEP: busca sozinho
+      return
+    }
+    setTexto(valor)
+    setListaSugestoes(true)
+  }
+
+  function aoEnviar(e: FormEvent) {
+    e.preventDefault()
+    const t = texto.trim()
+    if (mostrarSugestoes && ativa >= 0) return escolher(sug[ativa])
+    if (!t) return setEstado({ tipo: 'erro', texto: 'Digite um CEP, endereço, bairro ou cidade.' })
+    if (ehCep(t)) return void buscarCep(soDigitos(t))
+    if (pareceCep(t)) return setEstado({ tipo: 'erro', texto: 'Digite os 8 números do CEP.' })
+    // nome exato de uma cidade, bairro ou loja que temos: usa direto; senão, procura o endereço no mapa
+    const exata = sug.find((s) => s.tipo !== 'buscar' && norm(s.titulo) === norm(t))
+    if (exata) return escolher(exata)
+    void buscarEndereco(t)
+  }
+
+  function aoTeclar(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'ArrowDown' && sug.length) {
+      e.preventDefault()
+      setListaSugestoes(true)
+      setAtiva((a) => (a + 1) % sug.length)
+    } else if (e.key === 'ArrowUp' && sug.length) {
+      e.preventDefault()
+      setListaSugestoes(true)
+      setAtiva((a) => (a <= 0 ? sug.length - 1 : a - 1))
+    } else if (e.key === 'Escape') {
+      setListaSugestoes(false)
+      setAtiva(-1)
+    }
+  }
+
+  /** Volta para a visão geral: todas as lojas no mapa. */
+  function verTodas() {
+    pedido.current++
+    ultimaBusca.current = ''
+    setTexto('')
+    setOrigem(null)
+    setAberta(null)
+    setEstado({ tipo: 'ocioso' })
+    setAnuncio('Mostrando todas as lojas no mapa.')
+    proximoFoco({ tipo: 'tudo' })
+  }
+
+  function usarLocalizacao() {
+    const n = ++pedido.current
+    setEstado({ tipo: 'buscando', via: 'geo' })
+    setListaSugestoes(false)
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        if (n !== pedido.current) return
+        setTexto('')
+        ultimaBusca.current = ''
+        mostrarResultado({ lat: p.coords.latitude, lng: p.coords.longitude }, 'Você', 'localização do aparelho')
+      },
+      (erro) => {
+        if (n !== pedido.current) return
+        setEstado({
+          tipo: 'erro',
+          texto:
+            erro.code === erro.PERMISSION_DENIED
+              ? 'Você não liberou a localização. Tudo bem: busque pelo CEP, bairro ou cidade.'
+              : 'Não conseguimos pegar a sua localização. Busque pelo CEP, bairro ou cidade.',
+        })
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 },
+    )
+  }
+
+  // tocou numa loja no mapa: com ponto de partida, abre a loja na lista; na visão geral, mostra o cartão dela
+  const selecionarNoMapa = useCallback(
+    (id: number) => {
+      setAberta(id)
+      if (!origem) return
+      const el = cabecas.current.get(id)
+      el?.scrollIntoView({ behavior: menosMovimento() ? 'auto' : 'smooth', block: 'nearest' })
+      el?.focus({ preventScroll: true })
+    },
+    [origem],
+  )
+
   function verMais() {
     focarItem.current = mostrar
     setMostrar((m) => Math.min(candidatas.length, m + PASSO))
@@ -160,108 +351,13 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
     setAberta((a) => (a != null && candidatas.findIndex((c) => c.item.id === a) >= PASSO ? null : a))
   }
 
-  async function buscarCep(digitos: string) {
-    const n = ++pedido.current
-    ultimoCep.current = digitos
-    setEstado({ tipo: 'buscando', via: 'cep' })
-    void carregarMapa().catch(() => {}) // adianta o download do mapa
-    try {
-      const lugar = await localizarCep(digitos)
-      if (n !== pedido.current) return
-      mostrarResultado(
-        lugar,
-        [lugar.bairro, lugar.cidade].filter(Boolean).join(', ') || `o CEP ${formatarCep(digitos)}`,
-        digitos,
-      )
-    } catch (e) {
-      if (n !== pedido.current) return
-      ultimoCep.current = ''
-      setEstado({
-        tipo: 'erro',
-        texto:
-          e instanceof CepNaoEncontrado
-            ? `Não encontramos o CEP ${formatarCep(digitos)}. Confira os números ou use a sua localização.`
-            : 'Não conseguimos buscar o CEP agora. Tente de novo em instantes ou use a sua localização.',
-      })
-    }
-  }
-
-  function aoDigitar(valor: string) {
-    const novo = mascaraCep(valor)
-    setCep(novo)
-    if (estado.tipo === 'erro') setEstado({ tipo: 'ocioso' })
-    const d = soDigitos(novo)
-    if (d.length === 8 && d !== ultimoCep.current)
-      void buscarCep(d) // completou o CEP: busca sozinho
-    else if (d.length < 8 && estado.tipo === 'buscando' && estado.via === 'cep') {
-      pedido.current++ // apagou números no meio da busca: esquece a busca antiga
-      ultimoCep.current = ''
-      setEstado({ tipo: 'ocioso' })
-    }
-  }
-
-  function aoEnviar(e: FormEvent) {
-    e.preventDefault()
-    const d = soDigitos(cep)
-    if (d.length !== 8) {
-      setEstado({ tipo: 'erro', texto: 'Digite os 8 números do CEP.' })
-      campoCep.current?.focus()
-      return
-    }
-    void buscarCep(d)
-  }
-
-  function limpar() {
-    pedido.current++
-    ultimoCep.current = ''
-    setCep('')
-    setOrigem(null)
-    setAberta(null)
-    setEstado({ tipo: 'ocioso' })
-    setAnuncio('')
-    campoCep.current?.focus()
-  }
-
-  function usarLocalizacao() {
-    const n = ++pedido.current
-    setEstado({ tipo: 'buscando', via: 'geo' })
-    void carregarMapa().catch(() => {})
-    navigator.geolocation.getCurrentPosition(
-      (p) => {
-        if (n !== pedido.current) return
-        setCep('')
-        ultimoCep.current = ''
-        mostrarResultado({ lat: p.coords.latitude, lng: p.coords.longitude }, 'Você', null)
-      },
-      (erro) => {
-        if (n !== pedido.current) return
-        setEstado({
-          tipo: 'erro',
-          texto:
-            erro.code === erro.PERMISSION_DENIED
-              ? 'Você não liberou a localização. Tudo bem: digite o seu CEP.'
-              : 'Não conseguimos pegar a sua localização. Digite o seu CEP.',
-        })
-      },
-      { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 },
-    )
-  }
-
-  // tocou num marcador do mapa: abre a loja na lista e leva a tela até ela
-  const selecionarNoMapa = useCallback((id: number) => {
-    setAberta(id)
-    const el = cabecas.current.get(id)
-    el?.scrollIntoView({ behavior: menosMovimento() ? 'auto' : 'smooth', block: 'nearest' })
-    el?.focus({ preventScroll: true })
-  }, [])
-
   const mensagem =
     estado.tipo === 'erro'
       ? estado.texto
       : estado.tipo === 'buscando'
-        ? estado.via === 'cep'
-          ? `Procurando o CEP ${cep}…`
-          : 'Pedindo a sua localização ao aparelho…'
+        ? estado.via === 'geo'
+          ? 'Pedindo a sua localização ao aparelho…'
+          : 'Procurando no mapa…'
         : ''
 
   return (
@@ -273,24 +369,24 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
         <ArteMapa />
         <div>
           <h3 id="t-perto" className="font-display text-[19px] leading-tight font-semibold">
-            Qual loja fica mais perto de você?
+            Encontre a loja mais perto de você
           </h3>
           <p className="mt-1 text-[13.5px] leading-snug font-semibold text-muted-2">
-            Digite o seu CEP e veja no mapa as lojas Lalelilo mais próximas.
+            Busque pelo CEP, endereço, bairro ou cidade — ou explore o mapa.
           </p>
         </div>
       </div>
 
       <form
         ref={formulario}
-        className="mt-3.5 scroll-mt-3"
+        className="relative z-20 mt-3.5 scroll-mt-3"
         onSubmit={aoEnviar}
         noValidate
         role="search"
-        aria-label="Buscar a loja mais perto pelo CEP"
+        aria-label="Buscar loja"
       >
-        <label htmlFor="cep" className="sr-only">
-          Seu CEP
+        <label htmlFor="busca-loja" className="sr-only">
+          CEP, endereço, bairro ou cidade
         </label>
         <div
           className={clsx(
@@ -300,29 +396,39 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
               : 'border-[#EBDCD1] focus-within:border-pink focus-within:shadow-[0_0_0_4px_rgba(236,127,169,.2)]',
           )}
         >
-          <MapPin aria-hidden="true" className="ml-3.5 size-5 shrink-0 text-pe" />
+          <Search aria-hidden="true" className="ml-3.5 size-5 shrink-0 text-pe" />
           <input
-            ref={campoCep}
-            id="cep"
-            name="cep"
+            ref={campo}
+            id="busca-loja"
             type="text"
-            inputMode="numeric"
-            autoComplete="postal-code"
+            role="combobox"
+            aria-expanded={mostrarSugestoes}
+            aria-controls="sugestoes-loja"
+            aria-autocomplete="list"
+            aria-activedescendant={mostrarSugestoes && ativa >= 0 ? `sugestao-${ativa}` : undefined}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             enterKeyHint="search"
-            maxLength={9}
-            placeholder="00000-000"
-            value={cep}
+            placeholder="CEP, endereço ou cidade"
+            value={texto}
             onChange={(e) => aoDigitar(e.target.value)}
-            onFocus={() => void carregarMapa().catch(() => {})}
+            onKeyDown={aoTeclar}
+            onFocus={() => setListaSugestoes(true)}
+            onBlur={() => window.setTimeout(() => setListaSugestoes(false), 150)}
             aria-invalid={estado.tipo === 'erro' || undefined}
-            aria-describedby="cep-ajuda cep-msg"
-            className="h-full min-w-0 flex-1 bg-transparent pr-1 pl-2 text-lg font-extrabold tracking-[.04em] tabular-nums outline-none placeholder:font-bold placeholder:text-[#9EA3B8]"
+            aria-describedby="busca-ajuda busca-msg"
+            className="h-full min-w-0 flex-1 bg-transparent pr-1 pl-2 text-base font-bold outline-none placeholder:font-semibold placeholder:text-[#7C8199]"
           />
-          {cep && (
+          {texto && (
             <button
               type="button"
-              onClick={limpar}
-              aria-label="Apagar o CEP"
+              onClick={() => {
+                setTexto('')
+                setListaSugestoes(false)
+                campo.current?.focus()
+              }}
+              aria-label="Apagar a busca"
               className="grid size-9 shrink-0 place-items-center rounded-full text-muted-2 hover:bg-soft"
             >
               <X aria-hidden="true" className="size-[17px]" strokeWidth={2.5} />
@@ -330,43 +436,100 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
           )}
           <button
             type="submit"
-            disabled={buscando}
-            aria-label="Buscar lojas pelo CEP"
+            aria-label="Buscar"
             className="mr-1.5 flex h-11 shrink-0 items-center gap-1.5 rounded-[14px] bg-linear-to-br from-pe to-pink-dd px-3.5 text-[15px] font-extrabold text-white shadow-[0_8px_16px_-10px_rgba(168,51,106,.95)] transition duration-150 ease-suave hover:brightness-105 active:scale-[.96] disabled:cursor-progress"
           >
-            {buscando && estado.via === 'cep' ? (
+            {buscando && estado.via === 'texto' ? (
               <span className="spin" aria-hidden="true" />
             ) : (
               <>
-                <span className="max-[359px]:hidden">Buscar</span>
+                <span className="max-[419px]:hidden">Buscar</span>
                 <ArrowRight aria-hidden="true" className="size-[17px]" />
               </>
             )}
           </button>
         </div>
-        <p
-          id="cep-ajuda"
-          className="mx-1 mt-2 flex flex-wrap justify-between gap-x-2.5 gap-y-1 text-[12.5px] font-semibold text-muted-2"
-        >
-          <span>Só os 8 números</span>
-          <a
-            href="https://buscacepinter.correios.com.br/app/endereco/index.php"
-            target="_blank"
-            rel="noopener"
-            className="font-extrabold text-pink-dd underline-offset-[3px] hover:underline"
+
+        {mostrarSugestoes && (
+          <ul
+            id="sugestoes-loja"
+            role="listbox"
+            aria-label="Sugestões"
+            className="absolute inset-x-0 top-[calc(100%+6px)] max-h-[320px] overflow-auto rounded-2xl border border-line bg-white p-1.5 shadow-[0_18px_40px_-16px_rgba(47,52,80,.5)]"
           >
-            Não sei meu CEP
-          </a>
-        </p>
+            {sug.map((s, i) => (
+              <li
+                key={s.chave}
+                id={`sugestao-${i}`}
+                role="option"
+                aria-selected={i === ativa}
+                onMouseDown={(e) => {
+                  e.preventDefault() // não tira o foco do campo antes de escolher
+                  escolher(s)
+                }}
+                onMouseEnter={() => setAtiva(i)}
+                className={clsx(
+                  'flex cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2',
+                  i === ativa && 'bg-soft',
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className={clsx(
+                    'grid size-8 shrink-0 place-items-center rounded-lg',
+                    s.tipo === 'loja'
+                      ? 'bg-[#FDE8F0] text-pe'
+                      : s.tipo === 'lugar'
+                        ? 'bg-[#EAF1FD] text-[#1E4FA3]'
+                        : 'bg-soft text-muted-2',
+                  )}
+                >
+                  {s.tipo === 'loja' ? (
+                    <Store className="size-4" />
+                  ) : s.tipo === 'lugar' ? (
+                    <MapPin className="size-4" />
+                  ) : (
+                    <Search className="size-4" />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <b className="block truncate text-sm leading-tight font-extrabold">{s.titulo}</b>
+                  <span className="block truncate text-xs font-semibold text-muted-2">{s.sub}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </form>
 
+      <div className="mx-1 mt-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <span id="busca-ajuda" className="text-[12.5px] font-semibold text-muted-2">
+          Ex.: 51110-160 · Boa Viagem · Caruaru
+        </span>
+        {temGeo && (
+          <button
+            type="button"
+            onClick={usarLocalizacao}
+            disabled={buscando}
+            className="-mr-2 inline-flex min-h-10 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-extrabold text-azul transition hover:bg-white/70 disabled:cursor-progress"
+          >
+            {buscando && estado.via === 'geo' ? (
+              <span className="spin spin-azul" aria-hidden="true" />
+            ) : (
+              <LocateFixed aria-hidden="true" className="size-[17px]" />
+            )}
+            Usar minha localização
+          </button>
+        )}
+      </div>
+
       <p
-        id="cep-msg"
+        id="busca-msg"
         role="status"
         aria-live="polite"
         className={clsx(
           'mx-1 flex items-start gap-2 text-[13.5px] leading-snug font-bold empty:hidden',
-          mensagem && 'mt-2.5',
+          mensagem && 'mt-2',
           estado.tipo === 'erro' ? 'text-[#B42318]' : 'text-muted-2',
         )}
       >
@@ -381,56 +544,30 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
         {mensagem}
       </p>
 
-      {temGeo && (
-        <>
-          <div className="divisor mx-0.5 mt-3 mb-2.5 text-xs font-extrabold tracking-[.08em] text-muted-2 uppercase">
-            ou
-          </div>
-          <button
-            type="button"
-            onClick={usarLocalizacao}
-            disabled={buscando}
-            className="flex min-h-[50px] w-full items-center justify-center gap-2 rounded-2xl border-[1.5px] border-[#E6D7CC] bg-white text-[15px] font-extrabold text-ink transition duration-150 ease-suave hover:border-[#C9D6EE] hover:bg-[#FDFBFF] active:scale-[.985] disabled:cursor-progress"
-          >
-            {buscando && estado.via === 'geo' ? (
-              <span className="spin spin-azul" aria-hidden="true" />
-            ) : (
-              <LocateFixed aria-hidden="true" className="size-[19px] text-azul" />
-            )}
-            Usar a minha localização atual
-          </button>
-        </>
-      )}
-
       {origem && (
-        <div className="mt-4 border-t border-dashed border-[#EBD9CD] pt-3.5">
-          <div className="mx-0.5 mb-2.5">
-            <span className="block text-[11.5px] font-extrabold tracking-[.06em] text-muted-2 uppercase">
-              Lojas mais perto de
-            </span>
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-              <b
-                ref={titulo}
-                tabIndex={-1}
-                className="font-display text-[19px] leading-tight font-semibold outline-none"
-              >
-                {origem.rotulo}
-              </b>
-              <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs font-bold whitespace-nowrap text-muted-2 ring-1 ring-[#EFDCCF]">
-                {origem.cep ? `CEP ${formatarCep(origem.cep)}` : 'localização do aparelho'}
+        <div className="mx-0.5 mt-3.5">
+          <span className="block text-[11.5px] font-extrabold tracking-[.06em] text-muted-2 uppercase">
+            Lojas mais perto de
+          </span>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <b ref={titulo} tabIndex={-1} className="font-display text-[19px] leading-tight font-semibold outline-none">
+              {origem.rotulo}
+            </b>
+            {origem.detalhe && (
+              <span className="max-w-full truncate rounded-full bg-white/80 px-2 py-0.5 text-xs font-bold text-muted-2 ring-1 ring-[#EFDCCF]">
+                {origem.detalhe}
               </span>
-              <button
-                type="button"
-                onClick={editarCep}
-                className="py-1 text-[12.5px] font-extrabold text-pink-dd underline underline-offset-[3px]"
-              >
-                {origem.cep ? 'Trocar CEP' : 'Usar um CEP'}
-              </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={verTodas}
+              className="py-1 text-[12.5px] font-extrabold text-pink-dd underline underline-offset-[3px]"
+            >
+              Ver todas no mapa
+            </button>
           </div>
-
           {foraDoRaio && (
-            <p className="mb-2.5 flex items-start gap-2.5 rounded-2xl bg-[#EEF3FB] px-[13px] py-3 text-[13.5px] leading-snug font-bold text-[#24406E]">
+            <p className="mt-2.5 flex items-start gap-2.5 rounded-2xl bg-[#EEF3FB] px-[13px] py-3 text-[13.5px] leading-snug font-bold text-[#24406E]">
               <Info aria-hidden="true" className="mt-px size-[18px] shrink-0" />
               <span>
                 {longe
@@ -439,24 +576,80 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
               </span>
             </p>
           )}
+        </div>
+      )}
 
+      <div
+        ref={caixaMapa}
+        className="recorte relative isolate mt-3 rounded-[20px] border border-[#EADBD0] bg-[#F1ECE6] shadow-[0_12px_26px_-20px_rgba(47,52,80,.55)]"
+      >
+        <SeOMapaFalhar>
+          <Suspense fallback={<div className={clsx('mapa-esqueleto', ALTURA_MAPA)} />}>
+            <MapaLojas
+              origem={origem}
+              lojas={marcadores}
+              selecionada={aberta}
+              aoSelecionar={selecionarNoMapa}
+              longe={longe}
+              foco={foco}
+            />
+          </Suspense>
+        </SeOMapaFalhar>
+      </div>
+
+      {!origem &&
+        (lojaEscolhida ? (
           <div
-            ref={caixaMapa}
-            className="recorte relative isolate rounded-[20px] border border-[#EADBD0] bg-[#F1ECE6] shadow-[0_12px_26px_-20px_rgba(47,52,80,.55)]"
+            ref={cartaoLoja}
+            className="mt-3 scroll-mb-3 animate-[entra_.35s_var(--ease-suave)_both] rounded-2xl border border-[#F3D9E3] bg-white p-3 shadow-[0_10px_24px_-18px_rgba(47,52,80,.5)]"
           >
-            <SeOMapaFalhar>
-              <Suspense fallback={<div className={clsx('mapa-esqueleto', ALTURA_MAPA)} />}>
-                <MapaLojas
-                  origem={origem}
-                  lojas={marcadores}
-                  selecionada={aberta}
-                  aoSelecionar={selecionarNoMapa}
-                  longe={longe}
-                />
-              </Suspense>
-            </SeOMapaFalhar>
+            <div className="mb-1 flex items-start justify-between gap-2 pl-1">
+              <div className="min-w-0">
+                <b className="block text-base leading-tight font-extrabold">{lojaEscolhida.nome}</b>
+                <span className="text-[12.5px] font-semibold text-muted-2">
+                  {bairroCidade(lojaEscolhida)} · {lojaEscolhida.uf}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAberta(null)}
+                aria-label="Fechar os detalhes da loja"
+                className="grid size-9 shrink-0 place-items-center rounded-full text-muted-2 hover:bg-soft"
+              >
+                <X aria-hidden="true" className="size-[17px]" strokeWidth={2.5} />
+              </button>
+            </div>
+            <div className="grid gap-2">
+              <Endereco loja={lojaEscolhida} />
+              <Acao tipo="wa" loja={lojaEscolhida} aoUsar={aoUsar} />
+              <Acao tipo="vip" loja={lojaEscolhida} aoUsar={aoUsar} />
+            </div>
           </div>
+        ) : (
+          <div className="mt-3">
+            <p className="mx-1 mb-2 text-[12.5px] font-semibold text-muted-2">
+              Toque numa loja no mapa (os números juntam lojas próximas) ou escolha a região:
+            </p>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Ver uma região no mapa">
+              {POR_REGIAO.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => proximoFoco({ tipo: 'regiao', id: r.id })}
+                  className="flex h-9 items-center gap-1.5 rounded-full border-[1.5px] border-line bg-white pr-1.5 pl-3 text-[13px] font-bold text-muted-2 transition hover:border-[#E3D3C8] hover:text-ink"
+                >
+                  {NOME_CURTO[r.id] ?? r.nome}
+                  <span className="grid h-6 min-w-6 place-items-center rounded-full bg-soft px-1.5 text-[11.5px] font-extrabold text-ink">
+                    {r.n}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
 
+      {origem && (
+        <>
           <ol className="lista-perto mt-2.5" aria-label="Lojas da mais perto para a mais longe">
             {visiveis.map(({ item: loja, distancia }, i) => (
               <LojaItem
@@ -505,10 +698,9 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
               (candidatas.length > PASSO
                 ? `Mostrando ${visiveis.length} de ${candidatas.length} lojas num raio de ${RAIO_KM} km. `
                 : `Lojas num raio de ${RAIO_KM} km. `)}
-            Distâncias em linha reta; para ver todas as lojas, use a lista logo abaixo. Seu CEP e sua localização servem
-            só para esta busca: não guardamos nada.
+            Distâncias em linha reta. O que você busca serve só para achar a loja: não guardamos nada.
           </p>
-        </div>
+        </>
       )}
 
       <p className="sr-only" role="status" aria-live="polite">

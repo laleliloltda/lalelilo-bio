@@ -49,9 +49,9 @@ const UF_NOME: Record<string, string> = {
   TO: 'Tocantins',
 }
 
-type Buscar = typeof fetch
+export type Buscar = typeof fetch
 
-async function pegar(buscar: Buscar, url: string, ms: number) {
+export async function pegar(buscar: Buscar, url: string, ms: number) {
   const c = new AbortController()
   const t = setTimeout(() => c.abort(), ms)
   try {

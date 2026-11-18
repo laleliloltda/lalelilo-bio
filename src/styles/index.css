@@ -228,28 +228,6 @@
     animation-delay: calc(var(--i, 0) * 55ms);
   }
 
-  /* região da lista completa que abre e fecha (mesma técnica: grid 0fr → 1fr) */
-  .sanfona {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr); /* sem isto a coluna cresce com o texto e passa da borda */
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 0.35s var(--ease-suave);
-  }
-  .sanfona.aberta {
-    grid-template-rows: 1fr;
-  }
-  .sanfona-dentro {
-    min-height: 0;
-    overflow: hidden;
-    overflow: clip;
-    visibility: hidden;
-    transition: visibility 0s linear 0.35s;
-  }
-  .sanfona.aberta .sanfona-dentro {
-    visibility: visible;
-    transition: visibility 0s;
-  }
-
   /* estrelinha do Grupo VIP */
   .acao-vip::after {
     content: '';
@@ -386,6 +364,50 @@
   }
   .mk-wrap:hover .mk:not(.on) {
     transform: rotate(-45deg) scale(1.1);
+  }
+  .mk.mk-p {
+    width: 28px;
+    height: 28px;
+    border-width: 2.5px;
+    animation: aparece 0.25s var(--ease-suave) both;
+  }
+  .mk.mk-p i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .gp-wrap {
+    background: none;
+    border: 0;
+  }
+  .gp {
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    background: radial-gradient(circle at 32% 30%, #e7709f, var(--color-pink-dd));
+    color: #fff;
+    font:
+      900 15px/1 'Nunito',
+      sans-serif;
+    box-shadow:
+      0 0 0 5px rgba(236, 127, 169, 0.3),
+      0 8px 18px -6px rgba(47, 52, 80, 0.6);
+    transition: transform 0.2s var(--ease-suave);
+    animation: aparece 0.3s var(--ease-suave) both;
+  }
+  .gp-wrap:hover .gp {
+    transform: scale(1.08);
+  }
+  .mapa .leaflet-marker-icon:focus-visible {
+    outline: none;
+  }
+  .mapa .leaflet-marker-icon:focus-visible .mk,
+  .mapa .leaflet-marker-icon:focus-visible .gp {
+    box-shadow:
+      0 0 0 3px #fff,
+      0 0 0 6px var(--color-ink);
   }
   .eu {
     position: relative;
@@ -584,6 +606,12 @@
   }
   100% {
     translate: 0 0;
+  }
+}
+@keyframes aparece {
+  from {
+    opacity: 0;
+    scale: 0.6;
   }
 }
 @keyframes pulso {

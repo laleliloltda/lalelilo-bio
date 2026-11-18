@@ -1,23 +1,17 @@
-/** Cartão "Nossas lojas": a loja salva no aparelho, a busca pela loja mais perto (CEP/localização) e a lista
- *  completa, por região, com busca por nome, bairro ou cidade. */
-import { Crown, MapPin, Search } from 'lucide-react'
-import { useRef, useState } from 'react'
+/** Cartão "Nossas lojas": a loja salva no aparelho e o localizador (mapa com todas as lojas e busca por CEP,
+ *  endereço, bairro, cidade ou nome da loja). */
+import { Crown, MapPin } from 'lucide-react'
+import { useState } from 'react'
 
 import { LOJAS, type Loja } from '@/data/lojas'
 import { lerMinhaLoja, salvarMinhaLoja } from '@/lib/aparelho'
-import { norm } from '@/lib/texto'
 
 import { Acao } from './Acao'
 import { WhatsApp } from './icones'
-import { ListaRegioes } from './ListaRegioes'
 import { LojaMaisPerto } from './LojaMaisPerto'
 
 export function Lojas() {
-  const [busca, setBusca] = useState('')
   const [minha, setMinha] = useState<string | null>(() => lerMinhaLoja())
-  const campoBusca = useRef<HTMLInputElement>(null)
-
-  const termo = norm(busca.trim())
   const minhaLoja = LOJAS.find((l) => l.nome === minha) ?? null
 
   const usar = (l: Loja) => {
@@ -66,7 +60,7 @@ export function Lojas() {
               onClick={() => {
                 salvarMinhaLoja(null)
                 setMinha(null)
-                campoBusca.current?.focus()
+                document.getElementById('busca-loja')?.focus()
               }}
             >
               Trocar
@@ -80,27 +74,6 @@ export function Lojas() {
       )}
 
       <LojaMaisPerto aoUsar={usar} />
-
-      <div className="divisor mx-0.5 mt-[18px] text-xs font-extrabold tracking-[.08em] text-muted-2 uppercase">
-        ou escolha pela região
-      </div>
-
-      <div className="relative mt-3">
-        <Search aria-hidden="true" className="absolute top-1/2 left-[15px] size-[18px] -translate-y-1/2 text-muted" />
-        <input
-          ref={campoBusca}
-          type="search"
-          inputMode="search"
-          autoComplete="off"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Busque por cidade, bairro ou shopping"
-          aria-label="Buscar loja por cidade, bairro ou shopping"
-          className="h-[50px] w-full rounded-2xl border-[1.5px] border-line bg-[#FCFAF8] pr-3.5 pl-11 text-base font-semibold text-ink transition placeholder:font-semibold placeholder:text-[#7C8199] focus:border-pink focus:bg-white focus:shadow-[0_0_0_4px_rgba(236,127,169,.15)] focus:outline-none"
-        />
-      </div>
-
-      <ListaRegioes termo={termo} aoUsar={usar} />
     </section>
   )
 }
