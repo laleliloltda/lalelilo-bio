@@ -13,7 +13,10 @@ celular deitado, no tablet e no computador.
   números) ou toca em "Usar a minha localização". Aparecem um mapa com ela e as lojas mais próximas, e a lista
   da mais perto para a mais longe, com a distância em linha reta. Ao tocar numa loja: endereço, **Como chegar**
   (abre o Google Maps com a rota), **WhatsApp** e **Grupo VIP**. O CEP e a localização não são guardados.
-- Lista completa com busca por nome, bairro ou cidade e filtro por estado.
+- Lista completa **por região** (Recife e Região Metropolitana, Zona da Mata, Agreste, Sertão, Paraíba e Alagoas):
+  seis linhas curtas com o número de lojas e as cidades; abre uma região por vez, com as lojas numa grade de duas
+  colunas, e o detalhe da loja (endereço, Como chegar, WhatsApp e Grupo VIP) aparece logo abaixo dela. Região com
+  mais de 8 lojas (hoje, a de Recife) ganha botões por cidade. A busca por nome, bairro ou cidade procura em todas.
 - "Sua loja": a última loja usada fica guardada só no aparelho da pessoa.
 - Canal do YouTube, Instagram/TikTok, vagas (formulários) e LinkedIn.
 
@@ -22,6 +25,7 @@ celular deitado, no tablet e no computador.
 | O quê | Arquivo |
 | --- | --- |
 | Lojas (WhatsApp, Grupo VIP, localização, endereço) | `src/data/lojas.ts` — instruções no topo do arquivo |
+| Regiões da lista (cidade → região) | `src/data/regioes.ts` — o teste avisa se uma loja nova cair fora |
 | Vagas | `src/data/vagas.ts` |
 | Cores e fontes da marca | `src/styles/index.css` (bloco `@theme`) |
 | Busca do CEP | `src/lib/cep.ts` |

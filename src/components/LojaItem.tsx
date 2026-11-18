@@ -137,7 +137,8 @@ export function LojaItem({
   )
 }
 
-function Endereco({ loja }: { loja: Loja }) {
+/** Endereço da loja com o botão "Como chegar" (Google Maps). */
+export function Endereco({ loja }: { loja: Loja }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 py-0.5 pl-1 text-[13px] leading-snug font-semibold text-muted-2">
       <span className="flex min-w-[58%] flex-1 items-start gap-2">

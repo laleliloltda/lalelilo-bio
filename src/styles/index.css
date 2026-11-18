@@ -195,6 +195,7 @@
   }
   .store .actions {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 0fr;
     transition: grid-template-rows 0.35s var(--ease-suave);
   }
@@ -204,6 +205,7 @@
   .store .actions-in {
     min-height: 0;
     overflow: hidden;
+    overflow: clip;
     opacity: 0;
     visibility: hidden;
     transition:
@@ -224,6 +226,28 @@
   .lista-perto .store {
     animation: entra 0.45s var(--ease-suave) both;
     animation-delay: calc(var(--i, 0) * 55ms);
+  }
+
+  /* região da lista completa que abre e fecha (mesma técnica: grid 0fr → 1fr) */
+  .sanfona {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr); /* sem isto a coluna cresce com o texto e passa da borda */
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s var(--ease-suave);
+  }
+  .sanfona.aberta {
+    grid-template-rows: 1fr;
+  }
+  .sanfona-dentro {
+    min-height: 0;
+    overflow: hidden;
+    overflow: clip;
+    visibility: hidden;
+    transition: visibility 0s linear 0.35s;
+  }
+  .sanfona.aberta .sanfona-dentro {
+    visibility: visible;
+    transition: visibility 0s;
   }
 
   /* estrelinha do Grupo VIP */

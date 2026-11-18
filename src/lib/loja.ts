@@ -3,6 +3,9 @@ import type { Loja } from '@/data/lojas'
 /** "Pina, Recife": o que vem depois do último " - " do endereço. */
 export const bairroCidade = (l: Loja) => l.endereco.split(' - ').pop() ?? ''
 
+/** "Recife": o que vem depois da última vírgula de "bairro, cidade". */
+export const cidadeDe = (l: Loja) => bairroCidade(l).split(',').pop()?.trim() ?? ''
+
 /** "Como chegar" no Google Maps (abre o app no celular, com a rota a partir de onde a pessoa está).
  *  Nos shoppings vai o nome do shopping junto, para o Google achar o lugar certo. */
 export function rotaGoogleMaps(l: Loja) {

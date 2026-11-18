@@ -1,59 +1,29 @@
 /** Cartão "Nossas lojas": a loja salva no aparelho, a busca pela loja mais perto (CEP/localização) e a lista
- *  completa com busca por nome, bairro ou cidade e filtro por estado. */
-import clsx from 'clsx'
-import { ChevronDown, Crown, MapPin, Search } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+ *  completa, por região, com busca por nome, bairro ou cidade. */
+import { Crown, MapPin, Search } from 'lucide-react'
+import { useRef, useState } from 'react'
 
-import { ESTADOS, LOJAS, ORDEM_UF, type Loja, type UF } from '@/data/lojas'
+import { LOJAS, type Loja } from '@/data/lojas'
 import { lerMinhaLoja, salvarMinhaLoja } from '@/lib/aparelho'
 import { norm } from '@/lib/texto'
 
 import { Acao } from './Acao'
 import { WhatsApp } from './icones'
-import { LojaItem } from './LojaItem'
+import { ListaRegioes } from './ListaRegioes'
 import { LojaMaisPerto } from './LojaMaisPerto'
 
-const INICIAL = 6 // lojas visíveis antes de "ver todas"
-const CHAVE_BUSCA = new Map(LOJAS.map((l) => [l.id, norm(`${l.nome} ${ESTADOS[l.uf]} ${l.endereco}`)]))
-const POR_UF = Object.fromEntries(ORDEM_UF.map((uf) => [uf, LOJAS.filter((l) => l.uf === uf).length])) as Record<
-  UF,
-  number
->
-
 export function Lojas() {
-  const [filtro, setFiltro] = useState<UF | 'todas'>('todas')
   const [busca, setBusca] = useState('')
-  const [expandido, setExpandido] = useState(false)
-  const [aberta, setAberta] = useState<number | null>(null)
   const [minha, setMinha] = useState<string | null>(() => lerMinhaLoja())
   const campoBusca = useRef<HTMLInputElement>(null)
-  const cabecas = useRef(new Map<number, HTMLButtonElement>())
-  const focarAposExpandir = useRef(false)
 
   const termo = norm(busca.trim())
   const minhaLoja = LOJAS.find((l) => l.nome === minha) ?? null
-  const lista = useMemo(
-    () =>
-      LOJAS.filter(
-        (l) => (filtro === 'todas' || l.uf === filtro) && (!termo || CHAVE_BUSCA.get(l.id)!.includes(termo)),
-      ),
-    [filtro, termo],
-  )
-  const corta = !termo && filtro === 'todas' && !expandido && lista.length > INICIAL
-  const visiveis = corta ? lista.slice(0, INICIAL) : lista
 
   const usar = (l: Loja) => {
     salvarMinhaLoja(l.nome)
     setMinha(l.nome)
   }
-
-  // "ver todas": o foco vai para a primeira loja que apareceu
-  useEffect(() => {
-    if (!expandido || !focarAposExpandir.current) return
-    focarAposExpandir.current = false
-    const id = lista[INICIAL]?.id
-    if (id != null) cabecas.current.get(id)?.focus()
-  }, [expandido, lista])
 
   return (
     <section
@@ -112,7 +82,7 @@ export function Lojas() {
       <LojaMaisPerto aoUsar={usar} />
 
       <div className="divisor mx-0.5 mt-[18px] text-xs font-extrabold tracking-[.08em] text-muted-2 uppercase">
-        ou procure na lista
+        ou escolha pela região
       </div>
 
       <div className="relative mt-3">
@@ -130,80 +100,7 @@ export function Lojas() {
         />
       </div>
 
-      <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por estado">
-        {(['todas', ...ORDEM_UF] as const).map((uf) => (
-          <button
-            key={uf}
-            type="button"
-            aria-pressed={filtro === uf}
-            title={uf === 'todas' ? undefined : `${POR_UF[uf]} lojas`}
-            onClick={() => setFiltro(uf)}
-            className="h-9 flex-auto rounded-full border-[1.5px] border-line bg-white px-[9px] text-[13px] font-bold text-muted transition aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white"
-          >
-            {uf === 'todas' ? 'Todas' : ESTADOS[uf]}
-          </button>
-        ))}
-      </div>
-
-      <p className="sr-only" role="status" aria-live="polite">
-        {termo || filtro !== 'todas'
-          ? `${lista.length} ${lista.length === 1 ? 'loja encontrada' : 'lojas encontradas'}`
-          : ''}
-      </p>
-
-      {!lista.length ? (
-        <div className="px-2 py-[22px] text-center text-sm text-muted">
-          <b className="mb-0.5 block font-display text-[17px] font-semibold text-ink">Nenhuma loja encontrada</b>
-          Tente outro nome de cidade, bairro ou shopping.
-        </div>
-      ) : (
-        ORDEM_UF.map((uf) => {
-          const doEstado = visiveis.filter((l) => l.uf === uf)
-          if (!doEstado.length) return null
-          return (
-            <div key={uf}>
-              {filtro === 'todas' ? (
-                <h3 className="mx-1 mt-4 mb-1.5 flex items-center gap-2 text-xs font-extrabold tracking-[.06em] text-muted uppercase after:h-px after:flex-1 after:bg-line">
-                  {ESTADOS[uf]}
-                </h3>
-              ) : (
-                <div className="h-2.5" />
-              )}
-              <ul>
-                {doEstado.map((l) => (
-                  <LojaItem
-                    key={l.id}
-                    loja={l}
-                    aberta={aberta === l.id}
-                    aoAlternar={() => setAberta((a) => (a === l.id ? null : l.id))}
-                    aoUsar={usar}
-                    termo={termo}
-                    cabecaRef={(el) => {
-                      if (el) cabecas.current.set(l.id, el)
-                      else cabecas.current.delete(l.id)
-                    }}
-                  />
-                ))}
-              </ul>
-            </div>
-          )
-        })
-      )}
-
-      {corta && (
-        <button
-          type="button"
-          onClick={() => {
-            focarAposExpandir.current = true
-            setExpandido(true)
-          }}
-          className={clsx(
-            'mt-2.5 flex h-[46px] w-full items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-[#E3D7CC] text-sm font-extrabold hover:bg-soft',
-          )}
-        >
-          Ver todas as {lista.length} lojas <ChevronDown aria-hidden="true" className="size-4" />
-        </button>
-      )}
+      <ListaRegioes termo={termo} aoUsar={usar} />
     </section>
   )
 }
