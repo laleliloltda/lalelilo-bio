@@ -41,7 +41,7 @@
   body {
     min-height: 100vh;
     overflow-x: hidden;
-    background: #ff9f45;
+    background: #ff7bac;
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -71,20 +71,21 @@
     overflow: clip;
   }
 
-  /* fundo animado: gradiente laranja → rosa com luzes suaves (só transform/opacity: leve até em celular simples) */
+  /* fundo animado nas 4 cores da marca: laranja #F89D13 → rosa #FF7BAC → azul #718FB1, com luzes suaves de cada cor
+     (o verde #A1C63D entra numa das luzes). Só transform/opacity: leve até em celular simples. */
   .bg {
     position: fixed;
     inset: 0;
     z-index: -1;
     overflow: hidden;
     pointer-events: none;
-    background: linear-gradient(165deg, #ffb547 0%, #ff9c3f 34%, #ff8a55 62%, #f97c9c 88%, #f47aa8 100%);
+    background: linear-gradient(168deg, #f89d13 0%, #ff7bac 48%, #718fb1 100%);
   }
   .bg::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(200deg, rgba(246, 112, 165, 0.55) 0%, rgba(246, 112, 165, 0) 55%);
+    background: linear-gradient(200deg, rgba(255, 123, 172, 0.5) 0%, rgba(255, 123, 172, 0) 55%);
     animation: breathe 14s ease-in-out infinite alternate;
   }
   .bg i {
@@ -98,14 +99,14 @@
     height: 70vmax;
     top: -32vmax;
     left: -26vmax;
-    background: radial-gradient(circle, rgba(255, 212, 115, 0.9), rgba(255, 212, 115, 0) 65%);
+    background: radial-gradient(circle, rgba(248, 157, 19, 0.85), rgba(248, 157, 19, 0) 65%);
   }
   .bg i:nth-child(2) {
     width: 66vmax;
     height: 66vmax;
     bottom: -30vmax;
     right: -26vmax;
-    background: radial-gradient(circle, rgba(255, 100, 160, 0.75), rgba(255, 100, 160, 0) 65%);
+    background: radial-gradient(circle, rgba(113, 143, 177, 0.75), rgba(113, 143, 177, 0) 65%);
     animation-name: drift2;
     animation-duration: 28s;
   }
@@ -114,7 +115,7 @@
     height: 55vmax;
     top: 22%;
     right: -30vmax;
-    background: radial-gradient(circle, rgba(255, 118, 58, 0.6), rgba(255, 118, 58, 0) 65%);
+    background: radial-gradient(circle, rgba(255, 123, 172, 0.65), rgba(255, 123, 172, 0) 65%);
     animation-name: drift3;
     animation-duration: 20s;
   }
@@ -123,7 +124,7 @@
     height: 52vmax;
     top: 48%;
     left: -30vmax;
-    background: radial-gradient(circle, rgba(255, 160, 196, 0.6), rgba(255, 160, 196, 0) 65%);
+    background: radial-gradient(circle, rgba(161, 198, 61, 0.55), rgba(161, 198, 61, 0) 65%);
     animation-name: drift2;
     animation-duration: 26s;
     animation-direction: alternate-reverse;
@@ -133,7 +134,7 @@
     height: 42vmax;
     top: 6%;
     left: 28%;
-    background: radial-gradient(circle, rgba(255, 238, 205, 0.5), rgba(255, 238, 205, 0) 65%);
+    background: radial-gradient(circle, rgba(255, 245, 236, 0.5), rgba(255, 245, 236, 0) 65%);
     animation-name: drift3;
     animation-duration: 18s;
     animation-direction: alternate-reverse;

@@ -33,12 +33,10 @@ export function Topo() {
           style={{ animationDelay: b.atraso, animationDuration: b.duracao }}
         />
       ))}
-      <img
-        className="reveal mx-auto mb-[18px] box-content block h-32 w-auto rounded-[30px] bg-white px-[26px] py-3.5 shadow-[0_0_0_6px_rgba(255,255,255,.35),0_18px_40px_-16px_rgba(140,45,15,.55)]"
-        src="/logo-lalelilo.jpg"
-        alt="Lalelilo Kids"
-        height={128}
-      />
+      {/* logo num círculo branco, com um anel de luz em volta */}
+      <span className="reveal mx-auto mb-[18px] grid size-[150px] place-items-center overflow-hidden rounded-full bg-white shadow-[0_0_0_6px_rgba(255,255,255,.35),0_18px_40px_-16px_rgba(60,40,90,.5)]">
+        <img className="block h-[116px] w-auto" src="/logo-lalelilo.jpg" alt="Lalelilo Kids" height={116} />
+      </span>
       <p className="reveal mx-auto max-w-[330px] font-display text-[21px] leading-[1.25] font-semibold tracking-[-.01em] max-[360px]:text-[19px]">
         A rede de moda infantil que{' '}
         <em className="tagline-em">
