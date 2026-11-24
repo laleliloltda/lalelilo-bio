@@ -1,21 +1,36 @@
 @import 'tailwindcss';
 
-/* Cores e medidas da marca (as mesmas da Bio em HTML). Os tons "pe/al/pb" e "pink-dd" são versões escuras
-   para texto branco com contraste AA (números das lojas, marcadores do mapa, botão de buscar). */
+/* Títulos na fonte da marca (Qanelas Soft) quando ela está instalada no aparelho; senão, Nunito — como na intranet. */
+@font-face {
+  font-family: 'Qanelas Soft';
+  src: local('Qanelas Soft ExtraBold'), local('QanelasSoft-ExtraBold');
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Qanelas Soft';
+  src: local('Qanelas Soft Black'), local('QanelasSoft-Black');
+  font-weight: 900;
+  font-display: swap;
+}
+
+/* Cores e medidas da marca — as mesmas do Hub e da intranet: rosa #FF7BAC, azul #718FB1, laranja #F89D13 e verde
+   #A1C63D; texto em navy. Os tons "pink-d", "pe/al/pb" e "pink-dd" são versões escuras para texto com contraste AA
+   (números das lojas, marcadores do mapa, botão de buscar). */
 @theme {
   --color-cream: #fff7ef;
   --color-card: #ffffff;
-  --color-ink: #2f3450;
-  --color-muted: #6b7190;
-  --color-muted-2: #5a5f7d;
+  --color-ink: #1c2340;
+  --color-muted: #565d77;
+  --color-muted-2: #4d546e;
   --color-line: #eee6de;
   --color-soft: #fbf5f0;
-  --color-pink: #ec7fa9;
-  --color-pink-d: #d65a8c;
+  --color-pink: #ff7bac;
+  --color-pink-d: #c2457a;
   --color-pink-dd: #a8336a;
-  --color-blue: #7a8fb0;
-  --color-orange: #efa03a;
-  --color-green: #a6c455;
+  --color-blue: #718fb1;
+  --color-orange: #f89d13;
+  --color-green: #a1c63d;
   --color-wa: #25d366;
   --color-wa-text: #15803d;
   --color-pe: #c2457a;
@@ -23,11 +38,11 @@
   --color-pb: #5f7a1f;
   --color-azul: #2f6fdb;
 
-  --font-sans: 'Nunito', system-ui, sans-serif;
-  --font-display: 'Fredoka', 'Nunito', sans-serif;
+  --font-sans: 'Raleway', system-ui, sans-serif;
+  --font-display: 'Qanelas Soft', 'Nunito', system-ui, sans-serif;
 
-  --radius-card: 24px;
-  --shadow-card: 0 1px 2px rgba(120, 40, 10, 0.06), 0 16px 36px -14px rgba(140, 45, 15, 0.42);
+  --radius-card: 26px;
+  --shadow-card: 0 1px 2px rgba(28, 35, 64, 0.06), 0 18px 40px -18px rgba(28, 35, 64, 0.45);
   --shadow-acao: 0 1px 2px rgba(47, 52, 80, 0.04), 0 6px 16px -10px rgba(47, 52, 80, 0.25);
   --shadow-acao-hover: 0 1px 2px rgba(47, 52, 80, 0.04), 0 12px 24px -12px rgba(47, 52, 80, 0.3);
   --ease-suave: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -44,6 +59,8 @@
     background: #ff7bac;
     color: var(--color-ink);
     font-family: var(--font-sans);
+    font-weight: 500;
+    font-variant-numeric: lining-nums; /* Raleway: números alinhados (o padrão dela é "antigo") */
     -webkit-font-smoothing: antialiased;
   }
   button,
@@ -140,13 +157,6 @@
     animation-direction: alternate-reverse;
   }
 
-  /* brilhos do topo */
-  .spark {
-    position: absolute;
-    color: #fff;
-    opacity: 0.9;
-    animation: twinkle 3.2s ease-in-out infinite;
-  }
   .tagline-em {
     position: relative;
     font-style: normal;
@@ -155,7 +165,7 @@
     padding: 0 0.28em 0.04em;
     border-radius: 0.4em;
     white-space: nowrap;
-    box-shadow: 0 6px 16px -8px rgba(140, 45, 15, 0.45);
+    box-shadow: 0 6px 16px -8px rgba(28, 35, 64, 0.4);
   }
 
   /* faixa com as cores do logo no topo do cartão de lojas */
@@ -471,6 +481,308 @@
   }
 }
 
+/* ------------------------------------------------------------------------------------------------------------------
+   Novo visual (branch testes) — linguagem do hall da intranet: órbita no logo, linha viva, contadores, faixas que
+   deslizam, entrada das seções ao rolar e um cartão escuro. Tudo para com "reduzir movimento". */
+@layer components {
+  /* abertura: logo em órbita (OrbitaLogo.tsx) */
+  .orbita-logo {
+    position: relative;
+    width: 268px;
+    max-width: 100%;
+    height: 200px;
+    margin: 0 auto 6px;
+  }
+  .orbita-trilha {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    width: 268px;
+    height: 144px;
+    margin: -72px 0 0 -134px;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .orbita-trilha.is-frente {
+    z-index: 3;
+  }
+  .orbita-trilha path {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.4);
+    stroke-width: 1.5;
+    stroke-dasharray: 1.5 7;
+    stroke-linecap: round;
+  }
+  .orbita-trilha.is-frente path {
+    stroke: rgba(255, 255, 255, 0.75);
+  }
+  .orbita-estrela {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+    width: var(--tam);
+    height: var(--tam);
+    margin: calc(var(--tam) / -2) 0 0 calc(var(--tam) / -2);
+    filter: drop-shadow(0 3px 6px rgba(28, 35, 64, 0.3));
+    will-change: transform, opacity;
+  }
+  .orbita-halo,
+  .orbita-anel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, #ff7bac, #718fb1, #f89d13, #a1c63d, #ff7bac);
+    animation: anel-gira 16s linear infinite;
+  }
+  .orbita-halo {
+    width: 186px;
+    height: 186px;
+    margin: -93px 0 0 -93px;
+    filter: blur(18px);
+    opacity: 0.55;
+  }
+  .orbita-anel {
+    width: 164px;
+    height: 164px;
+    margin: -82px 0 0 -82px;
+  }
+  .orbita-disco {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 150px;
+    height: 150px;
+    margin: -75px 0 0 -75px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 16px 36px -18px rgba(28, 35, 64, 0.55);
+  }
+  .orbita-disco img {
+    display: block;
+    width: auto;
+    height: 116px;
+  }
+
+  /* linha viva (LinhaViva.tsx): as frases ficam empilhadas na mesma célula e a ativa entra de baixo */
+  .linha-viva {
+    display: inline-grid;
+    max-width: 100%;
+    margin-top: 12px;
+    padding: 7px 15px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.42);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 10px 24px -16px rgba(28, 35, 64, 0.45);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .linha-frase {
+    grid-area: 1 / 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(80%);
+    filter: blur(3px);
+    pointer-events: none;
+    transition:
+      opacity 0.45s ease,
+      transform 0.6s var(--ease-suave),
+      filter 0.45s ease;
+  }
+  .linha-frase.is-ativa {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    pointer-events: auto;
+  }
+  .linha-frase.is-saindo {
+    transform: translateY(-80%);
+  }
+
+  /* contador (Odometro.tsx) */
+  .odometro {
+    display: inline-flex;
+  }
+  .odo-visual {
+    display: inline-flex;
+    align-items: flex-end;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .odo-col {
+    display: inline-block;
+    height: 1em;
+    overflow: hidden;
+    line-height: 1;
+  }
+  .odo-fita {
+    display: flex;
+    flex-direction: column;
+    transition: transform 1.6s cubic-bezier(0.16, 0.9, 0.24, 1);
+  }
+  .odo-fita > span {
+    display: block;
+    height: 1em;
+    line-height: 1;
+    text-align: center;
+  }
+  .odo-sep {
+    line-height: 1;
+    white-space: pre;
+  }
+
+  /* faixa de lojas (FaixaLojas.tsx): de ponta a ponta da tela */
+  .faixa-lojas {
+    width: 100vw;
+    margin: 24px 0 0 calc(50% - 50vw);
+  }
+  .faixa-lojas-titulo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 16px 10px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .faixa-lojas-linha {
+    padding: 4px 0;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .faixa-lojas-trilho {
+    display: flex;
+    width: max-content;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    animation: faixa-anda var(--dur, 70s) linear infinite;
+  }
+  .faixa-lojas-linha.is-reverso .faixa-lojas-trilho {
+    animation-direction: reverse;
+  }
+  .faixa-lojas:hover .faixa-lojas-trilho,
+  .faixa-lojas:focus-within .faixa-lojas-trilho {
+    animation-play-state: paused;
+  }
+  .faixa-lojas-trilho li {
+    padding-right: 8px; /* espaço igual depois de cada loja: o laço da animação fecha sem pulo */
+  }
+  .faixa-loja {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 15px 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 8px 18px -12px rgba(28, 35, 64, 0.5);
+    color: var(--color-ink);
+    font-size: 13.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    transition:
+      transform 0.25s var(--ease-suave),
+      background 0.2s;
+  }
+  .faixa-loja:hover {
+    background: #fff;
+    transform: translateY(-2px);
+  }
+  .faixa-loja i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cor-uf);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-uf) 25%, transparent);
+  }
+  .faixa-loja.is-pe {
+    --cor-uf: #ff7bac;
+  }
+  .faixa-loja.is-pb {
+    --cor-uf: #a1c63d;
+  }
+  .faixa-loja.is-al {
+    --cor-uf: #f89d13;
+  }
+  .faixa-lojas-dica {
+    margin: 8px 16px 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0.82;
+  }
+
+  /* ênfase dos títulos em degradê da marca (tons escuros: contraste para texto grande) */
+  .texto-marca {
+    background: linear-gradient(95deg, #d6407f 10%, #e8780a 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* entrada quando a seção aparece na tela (useApareceu) */
+  .surge {
+    opacity: 0;
+    transform: translateY(22px);
+    transition:
+      opacity 0.7s var(--ease-suave),
+      transform 0.7s var(--ease-suave),
+      translate 0.3s var(--ease-suave);
+  }
+  .surge.is-visivel {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* "Trabalhe com a gente" no escuro, como a faixa ao vivo do hall */
+  .vagas-escuro {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    color: #fff;
+    background:
+      radial-gradient(70% 55% at 100% 0%, rgba(255, 123, 172, 0.32), transparent 70%),
+      radial-gradient(60% 50% at 0% 100%, rgba(113, 143, 177, 0.42), transparent 70%),
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 30px 30px,
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 30px 30px,
+      linear-gradient(160deg, #1b2547, #121933 62%, #0f1530);
+    box-shadow: 0 34px 60px -34px rgba(18, 25, 51, 0.8);
+  }
+  .vagas-escuro :focus-visible {
+    outline-color: #fff;
+  }
+}
+
+@media (max-width: 370px) {
+  .linha-viva {
+    border-radius: 18px;
+  }
+  .linha-frase {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+}
+
 @keyframes drift1 {
   0% {
     transform: translate(0, 0) scale(1);
@@ -627,6 +939,30 @@
 }
 
 /* quem pede menos movimento no aparelho não vê animação nenhuma */
+@keyframes anel-gira {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@keyframes faixa-anda {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* faixas de lojas paradas: rolam com o dedo */
+  .faixa-lojas-linha {
+    overflow-x: auto;
+  }
+  .faixa-lojas-trilho .is-copia {
+    display: none;
+  }
+  .surge {
+    opacity: 1;
+    transform: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

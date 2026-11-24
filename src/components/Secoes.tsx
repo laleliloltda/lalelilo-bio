@@ -16,10 +16,13 @@ import {
   Wrench,
   type LucideIcon,
 } from 'lucide-react'
+import clsx from 'clsx'
 
 import { VAGAS, type IconeVaga } from '@/data/vagas'
+import { useApareceu } from '@/lib/movimento'
 
 import { Instagram, LinkedIn, Play, TikTok } from './icones'
+import { Odometro } from './Odometro'
 
 const ICONES_VAGA: Record<IconeVaga, LucideIcon> = {
   'shopping-bag': ShoppingBag,
@@ -36,9 +39,15 @@ const ICONES_VAGA: Record<IconeVaga, LucideIcon> = {
 }
 
 export function Youtube() {
+  const [ref, visto] = useApareceu<HTMLAnchorElement>()
   return (
     <a
-      className="reveal relative mt-[18px] block overflow-hidden rounded-card no-underline shadow-card transition-transform duration-300 [animation-delay:.15s] hover:-translate-y-0.5"
+      id="canal"
+      ref={ref}
+      className={clsx(
+        'surge relative mt-[18px] block scroll-mt-4 overflow-hidden rounded-card no-underline shadow-card hover:-translate-y-0.5',
+        visto && 'is-visivel',
+      )}
       href="https://www.youtube.com/@lalelilokids"
       target="_blank"
       rel="noopener"
@@ -54,7 +63,7 @@ export function Youtube() {
         Novo canal
       </span>
       <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2.5 bg-linear-to-t from-[rgba(20,18,30,.82)] to-[rgba(20,18,30,0)] px-4 pt-10 pb-3.5 text-white">
-        <strong className="font-display text-[17px] leading-tight font-semibold">
+        <strong className="font-display text-[17px] leading-tight font-extrabold">
           Lalelilo Aventuras Bíblicas
           <small className="block font-sans text-[12.5px] font-semibold opacity-85">
             Assista com as crianças no YouTube
@@ -83,8 +92,9 @@ export function Siga() {
       fundo: 'bg-[#111]',
     },
   ]
+  const [ref, visto] = useApareceu<HTMLDivElement>()
   return (
-    <div className="reveal mt-[18px] grid grid-cols-2 gap-2.5 [animation-delay:.25s]">
+    <div ref={ref} className={clsx('surge mt-[18px] grid grid-cols-2 gap-2.5', visto && 'is-visivel')}>
       {redes.map(({ nome, url, Icone, fundo }) => (
         <a
           key={nome}
@@ -106,31 +116,36 @@ export function Siga() {
   )
 }
 
+/** "Trabalhe com a gente" no escuro, como a faixa ao vivo do hall: o número de vagas rola quando o cartão aparece. */
 export function Vagas() {
+  const [ref, visto] = useApareceu<HTMLElement>()
   return (
     <section
-      className="reveal mt-7 rounded-card border border-white/70 bg-white/92 p-[18px] shadow-card [animation-delay:.35s]"
+      id="vagas"
+      ref={ref}
+      className={clsx('surge vagas-escuro mt-7 scroll-mt-4 rounded-card p-5', visto && 'is-visivel')}
       aria-labelledby="t-vagas"
     >
-      <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#EEF1F7] text-[#5D7196]">
-          <Briefcase aria-hidden="true" className="size-5" />
-        </span>
-        <div>
-          <h3 id="t-vagas" className="font-display text-lg leading-tight font-semibold">
-            Trabalhe com a gente
-          </h3>
-          <p className="mt-0.5 text-[13.5px] leading-snug text-muted">
-            Quer crescer junto com a Lalelilo? Escolha a vaga e preencha o formulário.
-          </p>
-        </div>
-      </div>
-      <details className="group mt-3.5">
-        <summary className="flex h-[46px] list-none items-center justify-between rounded-[14px] border-[1.5px] border-line bg-white px-3.5 text-sm font-extrabold [&::-webkit-details-marker]:hidden">
-          Ver as {VAGAS.length} vagas abertas
+      <span className="inline-flex items-center gap-1.5 text-xs font-extrabold tracking-[.08em] text-[#ffb1cf] uppercase">
+        <Briefcase aria-hidden="true" className="size-3.5" /> Trabalhe com a gente
+      </span>
+      <h3 id="t-vagas" className="mt-2 font-display text-[24px] leading-[1.12] font-extrabold tracking-[-.015em]">
+        Quer crescer junto com a Lalelilo?
+      </h3>
+      <p className="mt-3 flex items-baseline gap-2.5">
+        <Odometro
+          texto={String(VAGAS.length)}
+          ativo={visto}
+          className="font-display text-[46px] leading-none font-extrabold"
+        />
+        <span className="text-[15px] font-bold text-white/75">vagas abertas</span>
+      </p>
+      <details className="group mt-4">
+        <summary className="flex h-12 list-none items-center justify-between rounded-[14px] border border-white/15 bg-white/[.07] px-4 text-sm font-extrabold text-white transition-colors hover:bg-white/[.12] [&::-webkit-details-marker]:hidden">
+          Ver as vagas e se candidatar
           <ChevronDown
             aria-hidden="true"
-            className="size-4 text-muted transition-transform duration-200 group-open:rotate-180"
+            className="size-4 text-white/60 transition-transform duration-200 group-open:rotate-180"
           />
         </summary>
         <ul className="mt-2 grid gap-1.5">
@@ -142,13 +157,13 @@ export function Vagas() {
                   href={v.link}
                   target="_blank"
                   rel="noopener"
-                  className="flex items-center gap-3 rounded-[14px] border border-[#F3EEE8] bg-white py-2 pr-3 pl-2 text-sm font-bold no-underline transition duration-200 hover:translate-x-0.5 hover:border-[#C9D3E3]"
+                  className="flex items-center gap-3 rounded-[14px] border border-white/10 bg-white/[.05] py-2 pr-3 pl-2 text-sm font-bold text-white no-underline transition duration-200 hover:translate-x-0.5 hover:border-white/30 hover:bg-white/[.09]"
                 >
-                  <span className="grid size-[34px] shrink-0 place-items-center rounded-[10px] bg-[#EEF1F7] text-[#5D7196]">
+                  <span className="grid size-[34px] shrink-0 place-items-center rounded-[10px] bg-white/10 text-[#cfdaeb]">
                     <Icone aria-hidden="true" className="size-[17px]" />
                   </span>
                   {v.nome}
-                  <ArrowUpRight aria-hidden="true" className="ml-auto size-4 shrink-0 text-[#B5B8C9]" />
+                  <ArrowUpRight aria-hidden="true" className="ml-auto size-4 shrink-0 text-white/45" />
                 </a>
               </li>
             )
@@ -159,7 +174,7 @@ export function Vagas() {
         href="https://www.linkedin.com/company/lalelilo"
         target="_blank"
         rel="noopener"
-        className="mt-2.5 flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-extrabold text-[#0A66C2] no-underline hover:bg-[#EEF4FB]"
+        className="mt-2.5 flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-extrabold text-[#9cc8ff] no-underline hover:bg-white/[.08]"
       >
         <LinkedIn className="size-[17px]" />
         Lalelilo no LinkedIn
@@ -169,8 +184,15 @@ export function Vagas() {
 }
 
 export function Rodape() {
+  const [ref, visto] = useApareceu<HTMLElement>()
   return (
-    <footer className="reveal mt-[26px] flex items-center justify-center gap-[5px] text-[12.5px] font-bold [animation-delay:.45s]">
+    <footer
+      ref={ref}
+      className={clsx(
+        'surge mt-[26px] flex items-center justify-center gap-[5px] text-[12.5px] font-bold',
+        visto && 'is-visivel',
+      )}
+    >
       Feito com <Heart role="img" aria-label="amor" className="bate size-3 fill-white text-white" /> pela Lalelilo Kids
     </footer>
   )

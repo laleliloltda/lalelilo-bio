@@ -64,7 +64,14 @@ class SeOMapaFalhar extends Component<{ children: ReactNode }, { falhou: boolean
   }
 }
 
-export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
+export function LojaMaisPerto({
+  aoUsar,
+  abrir = null,
+}: {
+  aoUsar: (loja: Loja) => void
+  /** loja tocada na faixa "Tem Lalelilo pertinho de você" (vez muda a cada toque) */
+  abrir?: { loja: Loja; vez: number } | null
+}) {
   const [texto, setTexto] = useState('')
   const [estado, setEstado] = useState<Estado>({ tipo: 'ocioso' })
   const [origem, setOrigem] = useState<Origem | null>(null)
@@ -212,6 +219,16 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
     proximoFoco({ tipo: 'loja', id: l.id })
     setAnuncio(`${l.nome}, ${bairroCidade(l)}. Os contatos da loja estão logo abaixo do mapa.`)
   }
+
+  // loja tocada na faixa de cima: abre como se tivesse sido escolhida na busca (cartão logo abaixo do mapa)
+  useEffect(() => {
+    if (!abrir) return
+    setListaSugestoes(false)
+    setAtiva(-1)
+    setTexto(abrir.loja.nome)
+    verLoja(abrir.loja)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só quando chega um pedido novo
+  }, [abrir])
 
   /** Cidade ou bairro onde temos loja: parte do centro do lugar (OpenStreetMap); se não achar, do meio das lojas. */
   async function irParaLugar(s: Extract<Sugestao, { tipo: 'lugar' }>) {
@@ -365,7 +382,7 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
       <div className="flex items-center gap-3">
         <ArteMapa />
         <div>
-          <h3 id="t-perto" className="font-display text-[19px] leading-tight font-semibold">
+          <h3 id="t-perto" className="font-display text-[19px] leading-tight font-extrabold">
             Encontre a loja mais perto de você
           </h3>
           <p className="mt-1 text-[13.5px] leading-snug font-semibold text-muted-2">
@@ -553,7 +570,7 @@ export function LojaMaisPerto({ aoUsar }: { aoUsar: (loja: Loja) => void }) {
                 <b
                   ref={titulo}
                   tabIndex={-1}
-                  className="font-display text-[19px] leading-tight font-semibold outline-none"
+                  className="font-display text-[19px] leading-tight font-extrabold outline-none"
                 >
                   {origem.rotulo}
                 </b>
