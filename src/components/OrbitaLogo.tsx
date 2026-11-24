@@ -114,7 +114,7 @@ export function OrbitaLogo() {
       <span className="orbita-halo" aria-hidden="true" />
       <span className="orbita-anel" aria-hidden="true" />
       <span className="orbita-disco">
-        <img src="/logo-sem-estrelas.png" alt="Lalelilo Kids" width={98} height={96} />
+        <img src="/logo-sem-estrelas.png" alt="Lalelilo Kids" width={59} height={58} />
       </span>
       <Trilha frente />
     </div>

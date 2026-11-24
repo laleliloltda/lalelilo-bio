@@ -565,10 +565,11 @@
     background: #fff;
     box-shadow: 0 16px 36px -18px rgba(28, 35, 64, 0.55);
   }
-  /* logo sem as estrelas (pedido do usuário): as estrelinhas ficam só na órbita */
+  /* logo sem as estrelas (pedido do usuário), com as letras no mesmo tamanho do logo com estrelas (~57 px):
+     o branco em volta é o mesmo de antes; as estrelinhas ficam só na órbita */
   .orbita-disco img {
     display: block;
-    width: 98px;
+    width: 59px;
     height: auto;
   }
 
