@@ -8,8 +8,9 @@ celular deitado, no tablet e no computador.
 
 ## O que tem na página
 
-- **Visual no estilo do hall da intranet** (branch `testes`, em avaliação — ainda não publicado):
-  - abertura com o logo redondo, anel nas 4 cores da marca e as 4 estrelinhas em órbita (`OrbitaLogo.tsx`);
+- **Visual no estilo do hall da intranet** (aprovado e publicado em 24/11/2026):
+  - abertura com o logo redondo (arte sem estrelas, `public/logo-sem-estrelas.png`, com as letras na mesma escala do
+    logo com estrelas), anel nas 4 cores da marca e as 4 estrelinhas em órbita (`OrbitaLogo.tsx`);
   - linha viva que reveza lojas (contador que rola, `Odometro.tsx`), canal novo, vagas e Grupo VIP (`LinhaViva.tsx`);
   - "Tem Lalelilo pertinho de você": as lojas passando em duas faixas; tocar numa abre o localizador nela
     (`FaixaLojas.tsx` → prop `abrir` do `LojaMaisPerto`);
