@@ -8,6 +8,14 @@ celular deitado, no tablet e no computador.
 
 ## O que tem na página
 
+- **Visual no estilo do hall da intranet** (branch `testes`, em avaliação — ainda não publicado):
+  - abertura com o logo redondo, anel nas 4 cores da marca e as 4 estrelinhas em órbita (`OrbitaLogo.tsx`);
+  - linha viva que reveza lojas (contador que rola, `Odometro.tsx`), canal novo, vagas e Grupo VIP (`LinhaViva.tsx`);
+  - "Tem Lalelilo pertinho de você": as lojas passando em duas faixas; tocar numa abre o localizador nela
+    (`FaixaLojas.tsx` → prop `abrir` do `LojaMaisPerto`);
+  - seções que entram ao rolar (`lib/movimento.ts`) e "Trabalhe com a gente" num cartão escuro;
+  - cores exatas da marca, títulos em Qanelas Soft (Nunito enquanto não houver o arquivo da fonte) e texto em Raleway.
+  Tudo para com "reduzir movimento" do aparelho.
 - Topo com o logo, redes sociais e o número de lojas.
 - **Localizador de lojas** (`src/components/LojaMaisPerto.tsx` + `MapaLojas.tsx`): o mapa aparece já com todas as lojas
   (as que ficam coladas na tela viram uma bolinha com o número; tocar aproxima). Uma busca
@@ -30,6 +38,8 @@ celular deitado, no tablet e no computador.
 | Busca do CEP | `src/lib/cep.ts` |
 | Sugestões e busca de endereço | `src/lib/busca.ts` |
 | Mapa | `src/components/MapaLojas.tsx` |
+| Abertura (logo em órbita, linha viva) | `src/components/Topo.tsx`, `OrbitaLogo.tsx`, `LinhaViva.tsx` |
+| Faixa de lojas que desliza | `src/components/FaixaLojas.tsx` |
 
 Localização de uma loja nova: no Google Maps, clique com o botão direito em cima da loja e clique nos números
 que aparecem (latitude e longitude são copiadas).
